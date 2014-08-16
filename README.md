@@ -3,40 +3,25 @@
 tldr:
 PPS is a Fractured Soldat statistics and ranking system that intends to help players improve. Smoothly.
 
-Long version:
-http://www.fracs.net/pps/info
+#How does this whole thing work?
 
-= How does this whole thing work? =
+To be tracked by PPS, *all you have to do is join any Progressive Play Server*
+*You'r Hardware ID gets registerd automatically upon joining a server*
 
-To be tracked by PPS, *you must be a registered member of the Fractured Soldat Community.*
+PPS tracks you by your soldat hwid(no longer ip). 
+Every time you play, your in-game performance will be recorded. The ranking system then ranks the players accordingly.
+PPS also can bind your soldat hwid to your qnet auth. To do this you need issue a private message to the pps bot on qnet 
+with `!auth` command followed by your **secret code**. Your **secret code** is issued from the soldat server with the same command.
 
-You can register here: http://fracs.net/bbs/ucp.php?mode=register for free.
+#How are the ratings calculated / How are the players ranked? =
 
-PPS tracks you by your IP address. Please see [FAQ#Why_aren't_my_stats_recorded? here].
+PPS uses a modified system of [http://research.microsoft.com/en-us/projects/trueskill/ Mircosoft's TrueSkill system].
 
-Every time you play, your in-game performance will be recorded. The ranking system then ranks the players accordingly. To see how the ratings and ranking work, see [FAQ#How_are_the_ratings_calculated_/_How_are_the_players_ranked? here].
+FTA:
+The !TrueSkill ranking system only uses the final standings of all teams in a game in order to update the skill estimates (ranks) of all gamers playing in this game.
 
-= Why aren't my stats recorded? =
+That means because *only the final standings(the goal of the game; or in other words winning/losing) of all teams in a game* are used to rank players, stats whoring is impossible. *The only thing that matters* is the number of maps you have won/lost and the participating players and their ratings.
 
-The system tracks you by your IP Address - *thus you must let the system know which IP you are using and tell it when your IP has changed since last visit.*
-
-Here are the ways to have your IP Address acknowledged:
-  * *If you are not logged into both the forums and the PPS website*, all you have to do is to login to *either* location.
-    * *If you are already logged into the forums*, just visit the forums home page again.
-      * *If you are already logged into the PPS website*, click the "Update IP" link at the top-right corner.
-
-      = How are the ratings calculated / How are the players ranked? =
-
-      PPS uses a modified system of [http://research.microsoft.com/en-us/projects/trueskill/ Mircosoft's TrueSkill system].
-
-      FTA:
-        The !TrueSkill ranking system only uses the final standings of all teams in a game in order to update the skill estimates (ranks) of all gamers playing in this game.
-
-        That means because *only the final standings(the goal of the game; or in other words winning/losing) of all teams in a game* are used to rank players, stats whoring is impossible. *The only thing that matters* is the number of maps you have won/lost and the participating players and their ratings.
-
-        Read more about it here:
-
-        http://www.fracs.net/pps/info/
-
-        http://research.microsoft.com/en-us/projects/trueskill/
+Read more about it here:
+http://research.microsoft.com/en-us/projects/trueskill/
 
