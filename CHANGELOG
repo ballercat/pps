@@ -1,0 +1,37 @@
+Changelog:
+
+v0.3.0 -> v0.4.0 (04/13/09) :
+	
+	- Removed 'REFRESH' packet code from time critical sections, its only used
+	now when the bot first connects.
+	+ Separated main code into two modes a 'debug' and a 'live'.
+	# Changed mySQL code to use predefined sql queries
+	# Converted players array to use associative keys
+	- Removed bot support
+	+ Added IRC admin support
+	+ Added/Fixed Win/Loss stast
+	
+v0.2.0 -> v0.3.0:
+	
+	! Complete Rewrite
+	+ Added a new player class
+	+ Added a new base_stats class
+	+ Added time played
+	+ Added multiple kill count
+	+ Added points
+	+ Added cap to kill ratio
+	+ Added win%
+	+ Added team stats
+	# Changed buffer parsing mode
+	+ Added kill, cap, grab, return point modifiers
+	+ Added global 'on cap' server point modifier
+	+ Added bot support
+	
+v0.1.0 -> v0.2.0:
+
+	# Fixed multiple bugs.....
+	+ Added weapon stats
+	
+v0.1.0:
+
+	! Initial version.
