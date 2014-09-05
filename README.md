@@ -13,7 +13,7 @@ Every time you play, your in-game performance will be recorded. The ranking syst
 PPS also can bind your soldat hwid to your qnet auth. To do this you need issue a private message to the pps bot on qnet 
 with `!auth` command followed by your **secret code**. Your **secret code** is issued from the soldat server with the same command.
 
-#How are the ratings calculated / How are the players ranked? =
+#How are the ratings calculated / How are the players ranked? 
 
 PPS uses a modified system of [http://research.microsoft.com/en-us/projects/trueskill/ Mircosoft's TrueSkill system].
 

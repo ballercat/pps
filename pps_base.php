@@ -156,7 +156,9 @@ class base_stats{
         list( $cmd, $hwid, $id, $team, $name ) = explode( " ", $line, 5 );
 
         $player = new base_player( null, $name );
-            
+
+        var_dump( $this->T->ps );
+
         if( !$this->T->is_playing( $name ) ){
             /* Add a new player */
             $record = $this->db->get_player( $hwid );

@@ -177,27 +177,10 @@ class teams_container{
         
         if( !isset($name) ) return;
         
-        if( !$team ){
-            if( array_search( $name, $this->alpha->p ) )
-                $team = 1;
-            elseif( array_search( $name, $this->bravo->p ) )
-                $team = 2;
-            elseif( array_search( $name, $this->spec->p ) )
-                $team = 5;
-        }
-        if( !$team ) return;
-        
-        switch( $team ){
-            case 1:
-                $from = &$this->alpha;
-                break;
-            case 2:
-                $from = &$this->bravo;
-                break;
-            case 5:
-                $from = &$this->spec;
-                break;
-        }
+        $player = $this->get_player_with_name( $name );
+        if( !$player ) return;
+
+        $from = $player->team;
 
         foreach( $from->p as $key => $player )
         {
@@ -222,10 +205,19 @@ class teams_container{
     public function &get_player_with_id( $id ) 
     {
         foreach( $this->ps as $name => $player ) {
-            echo "compare $player->p_id vs $id\n";
             if( $player->p_id == $id ) {
                 return $this->ps[$name];
             }
+        }
+
+        return $this->nullplayer;
+    }
+
+    public function &get_player_with_name( $name )
+    {
+        foreach( $this->ps as $n => $player ) {
+            if( $n == $name ) 
+                return $this->ps[$name];
         }
 
         return $this->nullplayer;
