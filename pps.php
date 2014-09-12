@@ -25,20 +25,20 @@ error_reporting(E_ALL);
 
 $INFO= array();
 
-include "refresh.php";
-include "server.php";
-include "pps_player.php";
-include "pps_base.php";
-include "irc_server.php";
-include "soldat_server.php";
-include 'mysql_server.php';
-require ("ppsconfig.php");
-
 define('FRESH', 1);
 define('CONNECTED', 2);
 define('RECONNECTING', 4);
 define('DISCONNECTED', 8);
 define('IDLE', 16);
+
+include "refresh.php";
+include "server.php";
+//include "pps_player.php";
+include "irc_server.php";
+include "soldat_server.php";
+include 'mysql_server.php';
+include "pps_base.php";
+require ("ppsconfig.php");
 
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////// */        
 class pps{
@@ -128,7 +128,24 @@ class pps{
         echo ". OK\n";
     }
     
+    public function get_sockets()
+    {
+        $sockets = [];
+         
+        foreach( $this->servers as $key => $server ){
+            if( !$server->connected  && $server->type === SERVER_TYPE_SOLDAT ) {
+                echo "attempt reconnect\n";
+                $server->reconnect();
+                continue;
+            }
+            echo "Found available server, hoocking stats\n";
+            $server->stats = new base_stats( $this->db, $this->servers[$key], $this->servers[$key]->get_refreshx());
+            $this->m_TPC += $server->stats->pc;
+            $sockets[] = $server->sock;
+        }
 
+        return $sockets;
+    }
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */
     /*******************************************************
      *     Main monitoring function PROXY will setup         *
@@ -142,9 +159,9 @@ class pps{
         
         
         $this->m_buffer = '';
-        $sockets = [];
+        $sockets = $this->get_sockets();;
          
-        foreach( $this->servers as $key => $server ){
+        /*foreach( $this->servers as $key => $server ){
             if( $server->type === SERVER_TYPE_IRC ) {
                 if( true ) {
                     echo "IRC TEST\n";
@@ -162,10 +179,11 @@ class pps{
             $server->stats = new base_stats( $this->db, $this->servers[$key], $this->servers[$key]->get_refreshx());
             $this->m_TPC += $server->stats->pc;
             $sockets[] = $server->sock;
-        }
+        }*/
 
         echo "--> Now monitoring...\n";
-        $this->f_monitor( $sockets );
+        $this->f_monitor($sockets);
+       
     
         echo "--> Ubnormal Termination => 'connection lost'\n\r";
         foreach( $this->servers as $server ){
@@ -180,18 +198,31 @@ class pps{
     { if( !count($socks) ) return;
         do
         {
+            //Inside the loop an empty socks variable means there were connections
+            //lost. So we try to reconnect here, by getting new socket resources.
+            if( !count($socks) ) {
+                echo "Empty socket list\n";
+                $socks = $this->get_sockets();
 
+                if( !count($socks) ) {
+                    //Reconnect(s) failed
+                    continue;
+                }
+            }
             $r = $socks;
             $w = NULL;
             $e = NULL;
             $tv_sec = NULL;
             if( false === socket_select($r, $w, $e, $tv_sec) ) {
-                echo "Socket select failed\n";
-                break;
+                return 1;
             }else{
                 foreach( $r as $socket ){
                     socket_getpeername( $socket, $IP, $PORT );
-                    $this->servers["$IP:$PORT"]->readbuffer();
+                    if( !$this->servers["$IP:$PORT"]->readbuffer() ) {
+                        //Zero byte buffer recieved. Attempt reconnect(s);
+                        echo "Zero byte buffer\n";
+                        $socks = $this->get_sockets();
+                    }
                 }
             }
 			

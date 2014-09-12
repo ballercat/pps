@@ -1,6 +1,7 @@
 <?php
 
 include "refresh.php";
+include "server.php";
 include "irc_server.php";
 include "soldat_server.php";
 
@@ -25,6 +26,11 @@ class mock_pps {
     public function add_chat_server( $ip, $port, $nick, $chan ) {
         $this->servers["$ip:$port"] = new irc_server( $ip, $port, $nick, $chan );
         $this->servers["$ip:$port"]->pps = $this;
+    }
+
+    public function test( $ip, $port, $buffer ) 
+    {
+        $this->servers["$ip:$port"]->parse_line( $buffer );
     }
 
     public function connect()
@@ -89,6 +95,7 @@ class mock_pps {
 
         return array("No server found with this info: $key");
     }
+
     public function bind_user_auth( $name, $auth, $code ) 
     {
         $data = mysqli_query($this->database, "SELECT name FROM players WHERE code=\"$code\"");
@@ -127,9 +134,36 @@ class mock_pps {
     }
 }
 
+
+function test( &$pps, $ip ) 
+{
+    $pps->test( $ip, "6667", ":cat!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    //$pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    $pps->test( $ip, "6667", ":dog!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    //$pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    $pps->test( $ip, "6667", ":rat!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    //$pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    $pps->test( $ip, "6667", ":duck!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    $pps->test( $ip, "6667", ":goose!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    $pps->test( $ip, "6667", ":kiwi!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    exit( 0 );
+    $pps->test( $ip, "6667", ":bluejay!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    $pps->test( $ip, "6667", ":whale!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    $pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
+    //$pps->test( $ip, "6667", ":bluejay!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    //$pps->test( $ip, "6667", ":whale!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    //$pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    //$pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    $pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net NICK :Lion" );
+        
+    exit(0);
+}
+
 $pps = new mock_pps();
 $pps->add_game_server( "192.210.137.129", "23073", "noodles" );
-$pps->add_chat_server( gethostbyname("irc.quakenet.org"), "6667", "catladdy", "#soldat.na" );
+$ip = gethostbyname("irc.quakenet.org");
+$pps->add_chat_server( $ip, "6667", "catladdy", "#soldat.na" );
+test( $pps, $ip );
 $pps->connect();
 $pps->monitor();
 

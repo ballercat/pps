@@ -22,9 +22,6 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
 */
 
-define( 'SERVER_TYPE_SOLDAT', 2 );
-define( 'SERVER_TYPE_IRC',  1 );
-define( 'SERVER_TYPE_MYSQL', 3 );
 
 class ppsserver {
     public $ip;

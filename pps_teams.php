@@ -37,12 +37,10 @@ class team{
     public $mu;
     public $number;
     
-    public function __construct(){
-        $this->score = 0;
-        $this->count = 0;
-        $this->flag = 1;
-        $this->fc = null;
-        $this->p = array();
+    public function __construct( $team_number = null ){
+        $this->clear(); 
+        if( $team_number )
+            $number = $team_number;
     }
 
     public function add( &$player ) 
@@ -65,6 +63,21 @@ class team{
 
         unset( $this->p[$player->p_id] );
         ksort( $this->p );
+    }
+
+    public function clear()
+    {
+        $this->count = 0;
+        $this->score = 0;
+        $this->flag = 1;
+        $this->fc = null;
+        $this->p = array();
+    }
+
+    public function contains_player( $name )
+    {
+        if( !$this->count ) return false;
+        return( array_key_exists($name, $this->p) );
     }
 }
 

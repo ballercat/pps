@@ -22,6 +22,8 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
 //include 'server.php';
 
+define( 'SERVER_TYPE_SOLDAT', 2 );
+
 class soldat_server extends ppsserver {
     public $m_adminlog;
     
@@ -44,7 +46,6 @@ class soldat_server extends ppsserver {
         $this->m_retry = $reconnect;   
         
         $this->State = 0;
-        $this->State |= FRESH;
         
         $this->stats = null;
         $this->join_try = null;
@@ -57,15 +58,28 @@ class soldat_server extends ppsserver {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */        
         $this->m_timeout = $timeout;
         
-        if( !socket_connect( $this->sock, $this->ip, $this->port) ){
-            $this->State |= DISCONNECTED;
-            return 1; /* Error */
-        }else{
-            $logstr = $this->m_adminlog . "\r\n";
-            socket_write( $this->sock, $logstr );
-            $this->State = CONNECTED;
-            $this->connected = true;
-        }
+        if( @fsockopen($this->ip, $this->port, $errno, $errstr ) === false ) {
+            echo $errstr . "\n";
+            return;
+        }        
+
+        socket_connect( $this->sock, $this->ip, $this->port);
+
+        $logstr = $this->m_adminlog . "\r\n";
+        socket_write( $this->sock, $logstr );
+        $this->State = CONNECTED;
+        $this->connected = true;
+    }
+    
+    public function reconnect($timeout = 5) {
+        //socket_shutdown( $this->sock ); //Shutting down non-connected socket gives a warning [107]. Weird
+        socket_close( $this->sock );
+        unset( $this->sock );
+
+        sleep( $timeout );
+        $this->connected = false;
+        $this->sock = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
+        $this->connect( $timeout );
     }
     
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -114,7 +128,13 @@ class soldat_server extends ppsserver {
     {
         if( !$this->sock ) return;
         $this->buffer = trim( socket_read($this->sock, 1024, PHP_BINARY_READ) );
+        if( !$this->buffer ) {
+            echo "Zero length buffer read. Reconnect\n";
+            $this->reconnect();
+            return false;
+        }
         $this->parse_buffer();
+        return true;
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -209,7 +229,10 @@ class soldat_server extends ppsserver {
         $name = substr( $line, 5 );
         if( $this->stats->T->is_playing($name) ) { 
             $P = &$this->stats->T->ps[$name];
-            $this->private_message( $P->p_id, "Rating: " . round($P->rating,2) );
+            if( $P->sigma != 8.3 && $P->mu != 25 )
+                $this->private_message( $P->p_id, "Rating: " . round($P->rating,2) );
+            else
+                $this->private_message( $P->p_id, "Not yet rated. No full games played" );
         }
     }
 

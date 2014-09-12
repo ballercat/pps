@@ -25,7 +25,6 @@ Copyright: (C) 2009 Arthur, B. aka ]{ing <whinemore@gmail.com>
     If a player leaves in the middle of the game they can no longer rating evade
     meaning they will still get -/+ rating when the map changes.
 */
-require ('pps_teams.php');
 
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////// */
 class base_stats{
@@ -156,8 +155,6 @@ class base_stats{
         list( $cmd, $hwid, $id, $team, $name ) = explode( " ", $line, 5 );
 
         $player = new base_player( null, $name );
-
-        var_dump( $this->T->ps );
 
         if( !$this->T->is_playing( $name ) ){
             /* Add a new player */

@@ -20,7 +20,11 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
  .
 
 */
-//include 'server.php';
+
+//require 'server.php';
+require 'gather.php';
+
+define( 'SERVER_TYPE_IRC',  1 );
 
 class irc_server extends ppsserver {
     public $ip;
@@ -42,14 +46,18 @@ class irc_server extends ppsserver {
     public $auth_cb;
     public $auth = null;
 
+    public $gathers;
+    public $gc;
+
     public function __construct($ip, $port, $nick, $channel) 
     {
         $this->ip   = $ip;
         $this->port = $port;
         $this->nick = $nick;
         $this->chan = $channel;
-
-        $this->sock = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
+        
+        $this->gathers = array();
+        $this->gc = 0;
     }
 
     public function get_info() 
@@ -58,16 +66,21 @@ class irc_server extends ppsserver {
     }
 
     public function send( $data, $channel = null )
-    {   if( !$this->sock ) {
-            echo "irc_debug: $data\n";
+    {   
+        $lines = explode( "\n", $data );
+        if( !$this->sock ) {
+            foreach( $lines as $line ) 
+                if( strlen($line) ) echo "irc_debug: $line\n";
             return;
         }
 
         if( !$channel ) {
-            socket_write( $this->sock, "$data"."\r\n" );
+            foreach( $lines as $line )
+                if( strlen($line) ) socket_write( $this->sock, "$line"."\r\n" );
         }
         else {
-            socket_write( $this->sock, ": PRIVMSG $channel :$data\r\n" );
+            foreach( $lines as $line )
+                if( strlen($line) ) socket_write( $this->sock, ": PRIVMSG $channel :$line\r\n" );
         }
     }
 
@@ -85,6 +98,7 @@ class irc_server extends ppsserver {
 
     public function connect( $timeout = 10, $reconnect = true ) 
     {
+        $this->sock = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
         socket_connect( $this->sock, $this->ip, $this->port );
 
         if( $this->sock ) {
@@ -121,7 +135,7 @@ class irc_server extends ppsserver {
             return;
         }
 
-        if( !$this->hooked ) return;
+        if( $this->sock && !$this->hooked ) return;
         $tokens = array_filter( explode(' ', $line, 5) );
 
         $useragent  = (array_key_exists(0,$tokens)) ? $tokens[0] : null;
@@ -135,7 +149,22 @@ class irc_server extends ppsserver {
             $this->Q_respond( $cmd, explode(' ', $args) );
             return;
         }
+        echo "$line\n";
 
+        //Check for nick changes
+        if( strpos($line, "NICK") ) {
+            $ut = explode( "!", $useragent );
+            $u = substr( $ut[0], 1 );
+
+            echo "Old nick:$u New nick:" . substr($channel, 1) . "\n";
+
+            foreach( $this->gathers as $gather ) {
+                $result = $gather->nickchange( $u, substr($channel, 1) );
+                if( $result ) {
+                    $this->send( $result, $this->chan );
+                }
+            }
+        }
         if( strpos($line, ":!") === false ) return;
             
         //Get vals 
@@ -213,7 +242,7 @@ class irc_server extends ppsserver {
         else {
             $this->send( "Could not find $user", $this->chan );
         }
-    }
+    } 
 
     public function ls ( $user, $args = null ) {
         exec( "ps aux | grep php", $output );
@@ -223,6 +252,27 @@ class irc_server extends ppsserver {
                 $this->send( "$script running...", $this->chan );
             }
         }
+    }
+
+    public function add ( $user, $args = null ) {
+        if( !array_key_exists($this->gc, $this->gathers) ) {
+            $this->gathers[$this->gc] = new gather_man( $this->gc );
+        } 
+        $result = $this->gathers[$this->gc]->add( $user );
+        if( !$result ) return;
+        $this->send( $result, $this->chan );
+
+        if( $this->gathers[$this->gc]->is_full() ) {
+            $result = $this->gathers[$this->gc]->start();
+            $this->send( $result, $this->chan );
+            $this->gc++;
+        }
+    }
+
+    public function del ( $user, $args = null ) {
+        $result = $this->gathers[$this->gc]->del( $user );
+        if( $result )
+            $this->send( $result, $this->chan );
     }
 }
 

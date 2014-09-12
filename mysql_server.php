@@ -21,7 +21,7 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
 */
 
-//include 'server.php';
+define( 'SERVER_TYPE_MYSQL', 3 );
 
 class mysql_server extends ppsserver {
     public $type = SERVER_TYPE_MYSQL;
