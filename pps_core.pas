@@ -303,12 +303,8 @@ begin
 
     WriteLn('PJOIN '+GetPlayerStat(ID,'hwid')+' ' + inttostr(ID) + ' ' + inttostr(Team) + ' ' + GetPlayerStat(ID, 'name'));
 
-    if(Team = 1) or (Team = 2) then pc := pc + 1;
-    vote_req := pc;
-    if pc > 2 then 
-        begin
-            vote_req := pc * 0.6;
-        end;
+    vote_req := NumPlayers*0.6;
+    pc := NumPlayers;
 
     //Player initialize
 	p[ID].pammo_a := -2;
@@ -333,12 +329,8 @@ begin
         exit;
     end;
 
-    if (Team = 1) or (Team = 2) then pc := pc - 1;
-    vote_req := pc;
-    if pc > 2 then 
-        begin
-            vote_req := pc * 0.6;
-        end;
+    vote_req := NumPlayers*0.6;
+    pc := NumPlayers;
 
     WriteLn('PLEFT ' + inttostr(ID) + ' ' + inttostr(Team) + ' ' + GetPlayerStat(ID, 'name'));
 	WriteLn('[acc]'+ GetPlayerStat(ID,'ip') +'[/acc]d' + inttostr(p[ID].pdamage) + 's' + inttostr(p[ID].pshots) + 'h' + inttostr(p[ID].phits) 
