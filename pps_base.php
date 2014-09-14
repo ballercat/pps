@@ -81,9 +81,12 @@ class base_stats{
 
                         if( $record ) {
                             $player = new base_player( $record, $name ); 
+                            echo "player found pm it\n";
+                            $this->server->private_message( $id, "Script connected $player->acc_name your stats are now tracked." );
                         }
                         else {
                             $player = $this->new_player( $hwid, $name );
+                            $this->server->private_message( $id, "Script connected. New player:$name registered. Secret code: $player->code" );
                         }
 
                         $this->T->add( $name, $team, $id, $player );
@@ -172,6 +175,16 @@ class base_stats{
                 $this->server->private_message( $id ,"Use it to connect your account with your qnet auth!" );
             }
         }
+        else {
+            $player = $this->T->get_player_with_name( $name );
+            if( $player->hwid != $hwid ) {
+                $player = $this->new_player( $hwid, $name );
+                
+                $this->server->private_message( $id ,"Welcome $name! You'r HWID has been registered." );
+                $this->server->private_message( $id ,"Your secret account code is $player->code" );
+                $this->server->private_message( $id ,"Use it to connect your account with your qnet auth!" );
+            }
+        }
 
         $player->hwid = $hwid;
         $this->T->add( $name, $team, $id, $player );
@@ -251,8 +264,8 @@ class base_stats{
         $victim->dominated[$killer->p_id] = 0;
         
         if( $killer->dominated[$victim->p_id] > 4 ){
-            $k = ( $killer->acc_name ) ? $killer->acc_name : $kn;
-            $d = ( $victim->acc_name ) ? $victim->acc_name : $vn;
+            $k = ( $killer->acc_name ) ? $killer->acc_name : $killer->name;
+            $d = ( $victim->acc_name ) ? $victim->acc_name : $victim->name;
             switch( $killer->dominated[$victim->p_id] )
             {
                 case 5:
