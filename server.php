@@ -31,6 +31,7 @@ class ppsserver {
 
     public $connected = false;
 
+    public function is_connected() { return $this->connected; }
     public function get_info() { return "Info function not supported on server"; }
     public function clear_buffer() { $this->buffer = null; }
     public function send( $data ) {}

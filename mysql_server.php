@@ -54,6 +54,7 @@ class mysql_server extends ppsserver {
             $this->prep->reset();
             $this->mysqli->close();
             $this->mysqli = null;
+            $this->connected = false;
         } 
     }
 

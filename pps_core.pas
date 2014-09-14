@@ -42,13 +42,89 @@ end;
 
 var
 	p : array[0..32] of pps_player;
+    pc: byte; //Player count
+    pps_connected : boolean; //PPS stats status
 	
 	// # of Bullets available per main 
 	wbullets : array[0..11] of integer;
 	// min/max damage of current weapon, needed to make sure stuff like nades and knife shots dont count as wep dmg
 	wdmg_min : array[0..11] of integer;
 	wdmg_max : array[0..11] of integer;
-	// Player Count
+
+    vote_cmd : string;
+    vote_type : string;
+    vote_check : array[0..32] of boolean;
+    vote_to  : byte;
+    vote_req : Double; 
+    vote_num : byte;
+    vote_active : boolean;
+
+procedure MessageAll( message : string );
+begin
+    WriteConsole( 0, message, $EE81FAA1 );
+end;
+
+procedure StartMapVote( Map : string );
+    begin
+        vote_active := true;
+        vote_cmd := '/map ' + Map;
+        vote_type := 'Map';
+        MessageAll('Map vote started: ' + Map)
+    end;
+
+procedure StartBanKickVote( Name : string );
+    begin
+        vote_active := true;
+        vote_cmd := Name;
+        vote_type := 'Ban';
+        MessageAll('Kickbacn vote started: ' + Name);
+    end;
+
+procedure PassBanKickVote( );
+    begin
+        BanPlayerReason( NameToId(vote_cmd), 15, 'Ban vote passed' ); 
+    end;
+
+procedure StartUnbanlastVote();
+    begin
+        vote_active := true;
+        vote_cmd := '/unbanlast';
+        vote_type := 'Unban';
+        MessageAll('Unbanlast vote started.');
+    end;
+
+procedure CancelVote();
+    var
+        i : byte;
+    begin
+        for i := 1 to 32 do vote_check[ i ] := false;
+
+        vote_num := 0;
+        vote_cmd := '';
+        vote_active := false;
+        vote_type := '';
+        MessageAll( 'Vote finished.' );
+    end;
+
+procedure CastVote( ID: byte );
+    begin
+        if vote_active = false then exit;
+        if vote_check[ ID ] <> true then
+            begin
+                vote_check[ ID ] := true;
+                vote_num := vote_num + 1;
+
+                MessageAll('Vote needed to pass: >= ' + FormatFloat('0.00', vote_req) + '.Left: ' + FormatFloat('0.00', vote_req  - vote_num) );
+
+                if( vote_num*1.0 >= vote_req ) then
+                    begin
+                        if vote_type = 'Ban' then PassBanKickVote();
+                        Command( vote_cmd );
+                        CancelVote();
+                    end
+                    
+            end;
+    end;
 
 procedure OnGameEnd();
 begin
@@ -79,6 +155,13 @@ begin
 	wdmg_min[8] := 200; wdmg_max[8] := 330;
 	wdmg_min[9] := 16; wdmg_max[9] := 28;
 	wdmg_min[10] := 1; wdmg_max[10] := 1;
+
+    //Initialize vote variables
+    vote_req := 1;
+    vote_num := 0;
+    vote_to := 0;
+    vote_active := false;
+    pps_connected := false;
 end;
 
 procedure AppOnIdle(Ticks: integer);
@@ -134,8 +217,12 @@ begin
 					end end
 				end // end if Ammo = -1
 			end // end if Ammo <> 0
-		end // end if Active
-	end // end for loop
+        end; // end if Active
+    end; // end for loop
+
+    //Vote timeout stuff
+    if(vote_active = true) and (vote_to <> 0) then vote_to := vote_to - Ticks;
+    if(vote_active = true) and (vote_to = 0) then CancelVote();
 end;
 					
 function OnPlayerDamage(Victim, Shooter: byte; Damage: integer): integer;
@@ -173,7 +260,6 @@ begin
 				p[Shooter].phits := p[Shooter].phits + 1;
 				p[Shooter].pwhits[p[Shooter].pweapon] := p[Shooter].pwhits[p[Shooter].pweapon] + 1;
 				
-				//{DEBUG}WriteConsole(Shooter, 'Hits ' + inttostr(p[Shooter].pwhits[p[Shooter].pweapon]), $0000FF00 );{DEBUG}
 			end
         end;
 		// Few things like nades COULD un-balance shots to hits ratio
@@ -216,6 +302,15 @@ begin
     end;
 
     WriteLn('PJOIN '+GetPlayerStat(ID,'hwid')+' ' + inttostr(ID) + ' ' + inttostr(Team) + ' ' + GetPlayerStat(ID, 'name'));
+
+    if(Team = 1) or (Team = 2) then pc := pc + 1;
+    vote_req := pc;
+    if pc > 2 then 
+        begin
+            vote_req := pc * 0.6;
+        end;
+
+    //Player initialize
 	p[ID].pammo_a := -2;
 	p[ID].pammo_l := 0;
 	p[ID].pshots := 0;
@@ -228,7 +323,7 @@ begin
 	p[ID].phits := 0;
 	p[ID].pdamage := 0;
     if Team = 5 then begin
-        WriteConsole(ID, 'If you ARE registered, make sure you log-in(on the forums) to update your ip', $0000FF00 );
+        WriteConsole(ID, 'Visit #soldat.na on quakenet.org to bind your account with your auth!', $0000FF00 );
     end
 end;
 
@@ -237,6 +332,13 @@ begin
     if( GetPlayerStat(ID, 'human') <> true ) then begin
         exit;
     end;
+
+    if (Team = 1) or (Team = 2) then pc := pc - 1;
+    vote_req := pc;
+    if pc > 2 then 
+        begin
+            vote_req := pc * 0.6;
+        end;
 
     WriteLn('PLEFT ' + inttostr(ID) + ' ' + inttostr(Team) + ' ' + GetPlayerStat(ID, 'name'));
 	WriteLn('[acc]'+ GetPlayerStat(ID,'ip') +'[/acc]d' + inttostr(p[ID].pdamage) + 's' + inttostr(p[ID].pshots) + 'h' + inttostr(p[ID].phits) 
@@ -298,18 +400,40 @@ procedure OnPlayerSpeak(ID: byte; Text: string);
 begin
     if( GetPlayerStat(ID, 'human') <> true ) then begin exit; end;
 
-    if( copy(Text,1,6) = '!info' ) then begin
-        WriteConsole(ID, 'In-Depth Info available at:', $0000FF00);
-        WriteConsole(ID, 'http://fracs.net/pps/info/', $0000FF00);
-    end;
-
-    if( copy(Text,1,8) = '!rating' ) then begin
-        WriteLn('PRATE'+GetPlayerStat(ID,'name'));
-    end;
-
-    if( copy(Text,1,10) = '!auth' ) then begin
-        WriteLn('RCODE'+GetPlayerStat(ID,'name'));
-    end
+    if Text = '!stats' then 
+        begin
+            if pps_connected = true then MessageAll( 'Stats are: ON.' ) else
+            if pps_connected = false then MessageAll( 'Stats are: OFF.' );
+            MessageAll( '!cmd, !commands for list of commands' );
+        end
+    else if(Text = '!cmd') or (Text = '!commands') then
+        begin
+            if pps_connected = true then MessageAll( 'Stats commands: !rating, !auth.' );
+            MessageAll( 'Game commands: !info, !a, !b, !s, !map, !bankick, !ub, !v' );
+        end
+    else
+    if Text = '!info'  then   WriteConsole(ID, 'Progressive Play System. Idle on irc: #soldat.na', $0000FF00) else
+    if Text = '!rating'  then WriteLn( 'PRATE'+GetPlayerStat(ID,'name') ) else
+    if(Text = '!auth') or (Text = '!code') or (Text = '!secret')  then   WriteLn( 'RCODE'+GetPlayerStat(ID,'name') ) else
+    if(Text = '!1') or (Text ='!a') or (Text = '!alpha') then Command('/setteam1 ' + IntToStr(ID)) else
+    if(Text = '!2') or (Text ='!b') or (Text = '!bravo') then Command('/setteam2 ' + IntToStr(ID)) else
+    if(Text = '!5') or (Text ='!s') or (Text = '!spec') then Command('/setteam5 ' + IntToStr(ID)) else
+    if(GetPiece(Text,' ',0) = '!map') and (vote_active = false) then 
+        begin
+            StartMapVote( Copy( Text, 6, 120 ) );
+            CastVote( ID );
+        end else
+    if(GetPiece(Text,' ',0) = '!bankick') and (vote_active = false) then
+        begin
+            StartBanKickVote( Copy(Text, 10, 120 ) );
+            CastVote( ID );
+        end else
+    if Text = '!ub' then 
+        begin
+            StartUnbanlastVote();
+            CastVote( ID );
+        end else
+    if(Text = '!v') or (Text = '!vote') or (Text = '!yes') or (Text = '!y') or (Text = '!m') then CastVote( ID );
 end;
 
 procedure OnFlagGrab(ID, TeamFlag: byte; GrabbedInBase: boolean );
@@ -338,4 +462,23 @@ begin
     WriteLn('PRETF'+GetPlayerStat(ID,'name'));
 end;
 
+function OnCommand( ID : Byte; Text : string ): boolean;
+begin
+    if Text = '/ppson' then
+        begin
+            MessageAll( 'PPS Stats Script has connected.' );
+            pps_connected := true;
+        end;
+
+    Result := false;
+end;
+
+procedure OnAdminDisconnect( IP: string);
+begin
+    if IP = '127.0.0.1' then
+        begin
+            MessageAll( 'PPS Stats Script has disconnected.' );
+            pps_connected := false;
+        end;
+end;
 

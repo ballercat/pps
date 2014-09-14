@@ -159,6 +159,10 @@ class base_stats{
 
         $player = new base_player( null, $name );
 
+        if( !$this->db->is_connected() ) {
+            $this->db->connect();
+        }
+
         if( !$this->T->is_playing( $name ) ){
             /* Add a new player */
             $record = $this->db->get_player( $hwid );
@@ -228,6 +232,11 @@ class base_stats{
                 $this->T->remove($name);
             }
         }
+
+        if( $this->T->player_count() == 0 ) {
+            $this->db->disconnect();
+        }
+
     }
 
 	/* ---------------------------------------------------------------------------------------------------------------------- */
@@ -373,7 +382,7 @@ class base_stats{
             }
             
             /* If the player played more than 5 minutes, update their stats with the buffers */
-            if( true ) { //time() - $this->T->ps[$name]->map_timer > 300 ){
+            if( time() - $this->T->ps[$name]->map_timer > 240 ){
                 if( $winner ){
                     if( $this->T->ps[$name]->team->number == $winner ){
                         $this->T->ps[$name]->wins++;
@@ -390,13 +399,19 @@ class base_stats{
             $this->T->ps[$name]->clear_buffers();
         }   
 
+        //Clear leaver array 
         if( count($this->leavers) ){
             foreach( $this->leavers as $key ){
-                $this->T->remove($key);
-                unset($this->leavers[$key]);
+                $this->T->remove( $key );
+                unset( $this->leavers[$key] );
             }
             $this->leavers = array();
+
+            if( $this->T->player_count == 0 ) {
+                $this->db->disconnect();
+            }
         }
+
         return $winner;
     }
 

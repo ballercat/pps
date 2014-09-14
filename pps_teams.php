@@ -139,6 +139,7 @@ class teams_container{
         fputs( $this->sock, "/say Teams shuffled, restarting...\r\n" ); */
     }
 
+    public function player_count() { return $this->pc; }
     public function pc_add( $team_number ) 
     {
         if( $team_number === 1 || $team_number === 2 ) {
