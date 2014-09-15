@@ -78,8 +78,8 @@ class base_player{
     public $dominations;
     
     /* Rank variables */
-    public $mu;
-    public $sigma;
+    public $mu = 25;
+    public $sigma = 8.3;
     public $rating;
     public $old_rating;
     
@@ -273,6 +273,11 @@ class base_player{
         $this->c_buffer = 0;
         $this->g_buffer = 0;
         $this->r_buffer = 0; 
+   }
+
+   public function has_rating()
+   {
+       return ( $mu != 25 && $mu != 8.3 );
    }
 }
 

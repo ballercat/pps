@@ -162,8 +162,8 @@ function test( &$pps, $ip )
 $pps = new mock_pps();
 $pps->add_game_server( "192.210.137.129", "23073", "noodles" );
 $ip = gethostbyname("irc.quakenet.org");
-$pps->add_chat_server( $ip, "6667", "catladdy", "#soldat.na" );
-test( $pps, $ip );
+$pps->add_chat_server( $ip, "6667", "LouisXIV", "#soldat.na" );
+//test( $pps, $ip );
 $pps->connect();
 $pps->monitor();
 

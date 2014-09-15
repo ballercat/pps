@@ -256,7 +256,7 @@ class pps{
     }
 
     public function get_auth_stats( $auth ) {
-        return $this->db->get_auth_stats( $auth ); 
+        return $this->db->auth_stats_to_string( $this->db->get_auth_stats() ); 
     }
 }
 

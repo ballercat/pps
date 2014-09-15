@@ -27,7 +27,6 @@ define('SPEC', 5 );
 /* dragons */
 
 class team{
-    
     public $score;
     public $count;
     public $p;
@@ -72,6 +71,38 @@ class team{
         $this->flag = 1;
         $this->fc = null;
         $this->p = array();
+    }
+
+    public function number_players_rated() 
+    {
+        $rated_number = 0;
+        foreach( $this->p as $player ) {
+            if( $player->has_rating() ) $rated_number++;
+        }
+        return $rated_number;
+    }
+
+    public function is_rated()
+    {
+        foreach( $this->p as $player ) {
+            if( $player->has_rating() ) return true;
+        }
+        return false;
+    }
+
+    public function average_rating() {
+        $total_rating = 0.0;
+        $number_rated = 0;
+        foreach( $this->p as $player ) {
+            if( $player->has_rating() ) {
+                $total_rating += $player->rating;
+                $number_rated++;
+            }
+        }
+
+        if( $number_rated == 0 ) return -1.0; //Don't divide by zero
+
+        return ($total_rating/$number_rated);
     }
 
     public function contains_player( $name )

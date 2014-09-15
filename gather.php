@@ -26,6 +26,7 @@ require './pps_teams.php';
 class gather_man {
     public $pc;
     public $players;
+    public $rated_players;
     public $bravo;
     public $alpha;
     public $game_number;
@@ -109,11 +110,28 @@ class gather_man {
         }
     }
 
+    //Start a new gather game
+    //Return formated string with the teams etc.,
     public function start()
     {
         mt_srand( crc32(microtime()) );
         $this->shuffle_teams( 1 );
 
+        if( $this->alpha->is_rated() || $this->bravo->is_rated() ) 
+        {
+            //Okay... We can possibly balance teams on rating
+
+            //Let's get all rated players
+            $rated_players = array();
+            foreach( $this->players as $player ) {
+                if( $player->has_rating() ) {
+                    $rated_players[] = $player;
+                }
+            } 
+            
+        }
+        
+        //Format result
         $result = "Gather starting!\n";
         $result .= "Alpha Team:";
         foreach( $this->alpha->p as $p ) {

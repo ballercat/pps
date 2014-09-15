@@ -183,13 +183,23 @@ class irc_server extends ppsserver {
         if( $qmsg == ":-Information" ) {
             //':-Information for user <USER> (using account <ACCOUNT>):'
             //$args = explode(' ', $args );
-            var_dump( $args );
             $this->auth = substr($args[5], 0, -2);
             $cb = $this->auth_cb;
             $this->$cb( $args[2] );
             $this->auth = null;
             $this->auth_cb = null;
         } 
+    }
+
+    private function whois( $name, $callback )
+    {   //Only a 'tiny' rabbit hole
+        //This will send and AUTH command to Q;
+        //read_line() will fire off a Q_response
+        //while the function exits and other commands can finish
+
+        $this->auth_try = $name;
+        $this->auth_cb = $callback;
+        $this->send( "WHOIS $name", "Q" );
     }
 
     private function authenticate( $user, $account ) 
@@ -219,22 +229,19 @@ class irc_server extends ppsserver {
     }
 
     public function auth ( $user, $args = null ) {
-        if( !$this->auth ) {
-            $this->auth_try = $args[0];
-            $this->auth_cb = "auth";
-            $this->send( "WHOIS $user", "Q" );
+        if( $this->auth === null ) {
+            $this->whois( $user, "auth" );
             return;
         }
         $this->authenticate( $user, $this->auth );
     }
 
     public function rating ( $user, $args = null ) {
-        echo $user, "\n";
-        if( !$this->auth ) {
-            $this->auth_cb = "rating";
-            $this->send( "WHOIS $user", "Q" );
+        if( $this->auth === null ) {
+            $this->whois( $user, "rating" );
             return;
         }
+            
         $result = $this->pps->get_auth_stats($this->auth);
         if( $result ) {
             $this->send( $result, $this->chan );
@@ -255,6 +262,11 @@ class irc_server extends ppsserver {
     }
 
     public function add ( $user, $args = null ) {
+        if( $this->auth === null ) {
+            $this->whois( $user,  "add" );
+            return;
+        } 
+
         if( !array_key_exists($this->gc, $this->gathers) ) {
             $this->gathers[$this->gc] = new gather_man( $this->gc );
         } 
