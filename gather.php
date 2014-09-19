@@ -146,8 +146,8 @@ class gather_man {
             }
         }
 
-        if( $team == 0 ) { //No team chosen, ratings are equal, choose alpha
-            $team = 1;
+        if( $team == 0 ) { //No team chosen, ratings are equal, choose random team
+            $team = mt_rand(1,2);  //mt_rand is great, should be around 50/50 results
         }
 
         if( $team == 1 ) {
@@ -203,6 +203,8 @@ class gather_man {
     //Return formated string with the teams etc.,
     public function start()
     {
+        mt_srand( crc32(microtime()) );
+
         $result = BOLD. "Gather starting!";
         if( $this->rated_player_count > 1 )
         { //Rated players are available so distribute them before shuffling the rest    
@@ -223,7 +225,6 @@ class gather_man {
 
         $result .= BOLD . "\n";
         //Do the leftover shuffling
-        mt_srand( crc32(microtime()) );
         $this->shuffle_teams( 1 );
 
 
