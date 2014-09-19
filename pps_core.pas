@@ -59,11 +59,20 @@ var
     vote_num : byte;
     vote_active : boolean;
 
+    gather_mode : boolean;
+    unpause_timer : byte;
+    unpause : boolean;
+
 procedure MessageAll( message : string );
 begin
     WriteConsole( 0, message, $EE81FAA1 );
 end;
 
+procedure ChangeMap( Map : string );
+    begin
+        Command('/map ' + Map);
+    end;
+    
 procedure StartMapVote( Map : string );
     begin
         vote_active := true;
@@ -103,6 +112,7 @@ procedure CancelVote();
         vote_cmd := '';
         vote_active := false;
         vote_type := '';
+        vote_to := 0;
         MessageAll( 'Vote finished.' );
     end;
 
@@ -162,6 +172,10 @@ begin
     vote_to := 0;
     vote_active := false;
     pps_connected := false;
+
+    gather_mode := false;
+    unpause_timer := 0;
+    unpause := false;
 end;
 
 procedure AppOnIdle(Ticks: integer);
@@ -221,8 +235,23 @@ begin
     end; // end for loop
 
     //Vote timeout stuff
-    if(vote_active = true) and (vote_to <> 0) then vote_to := vote_to - Ticks;
+    if(vote_active = true) and (vote_to <> 0) then vote_to := vote_to - 1;
     if(vote_active = true) and (vote_to = 0) then CancelVote();
+    
+    if unpause = true then
+        begin
+            if unpause_timer = 0 then
+                begin
+                    MessageAll('GO!');
+                    Command('/unpause');
+                    unpause := false;
+                end
+            else begin
+                MessageAll(IntToStr(unpause_timer) + '...');
+                unpause_timer := unpause_timer - 1;
+            end;
+        end;
+
 end;
 					
 function OnPlayerDamage(Victim, Shooter: byte; Damage: integer): integer;
@@ -412,8 +441,14 @@ begin
     if(Text = '!5') or (Text ='!s') or (Text = '!spec') then Command('/setteam5 ' + IntToStr(ID)) else
     if(GetPiece(Text,' ',0) = '!map') and (vote_active = false) then 
         begin
-            StartMapVote( Copy( Text, 6, 120 ) );
-            CastVote( ID );
+            if gather_mode = true then
+                begin
+                    ChangeMap( Copy( Text, 6, 120 ) );
+                end
+            else begin
+                StartMapVote( Copy( Text, 6, 120 ) );
+                CastVote( ID );
+            end;
         end else
     if(GetPiece(Text,' ',0) = '!bankick') and (vote_active = false) then
         begin
@@ -426,6 +461,28 @@ begin
             CastVote( ID );
         end else
     if(Text = '!v') or (Text = '!vote') or (Text = '!yes') or (Text = '!y') or (Text = '!m') then CastVote( ID );
+
+    if gather_mode = true then
+        begin
+            if Text = '!p' then
+                begin
+                    Command('/pause');
+                    unpause := false;
+                end else
+            if Text = '!up' then
+                begin
+                    if Paused then 
+                        begin
+                            MessageAll('Unpausing in:');
+                            unpause := true;
+                            unpause_timer := 3;
+                        end;
+                end else
+            if Text = '!r' then
+                begin
+                    Command('/restart');
+                end;
+        end;
 end;
 
 procedure OnFlagGrab(ID, TeamFlag: byte; GrabbedInBase: boolean );
@@ -460,6 +517,14 @@ begin
         begin
             MessageAll( 'PPS Stats Script has connected.' );
             pps_connected := true;
+        end
+    else if Text = '/gatheron' then
+        begin
+            gather_mode := true;
+        end
+    else if Text = '/gatheroff' then
+        begin
+            gather_mode := false;
         end;
 
     Result := false;

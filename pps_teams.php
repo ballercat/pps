@@ -35,7 +35,8 @@ class team{
     public $sigma;
     public $mu;
     public $number;
-    
+    public $rating = 0;
+
     public function __construct( $team_number = null ){
         $this->clear(); 
         if( $team_number )
@@ -50,6 +51,7 @@ class team{
         $this->p[$player->p_id] = $player->name;
         $this->sigma += $player->sigma;
         $this->mu += $player->mu;
+        $this->rating += $player->rating;
     }
 
     public function remove( &$player )
@@ -84,25 +86,16 @@ class team{
 
     public function is_rated()
     {
-        foreach( $this->p as $player ) {
-            if( $player->has_rating() ) return true;
-        }
-        return false;
+        return ($this->rating > 0 );
     }
 
     public function average_rating() {
         $total_rating = 0.0;
-        $number_rated = 0;
-        foreach( $this->p as $player ) {
-            if( $player->has_rating() ) {
-                $total_rating += $player->rating;
-                $number_rated++;
-            }
-        }
-
+        $number_rated = count($this->p);
+       
         if( $number_rated == 0 ) return -1.0; //Don't divide by zero
 
-        return ($total_rating/$number_rated);
+        return ($this->rating/$number_rated);
     }
 
     public function contains_player( $name )

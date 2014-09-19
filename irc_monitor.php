@@ -4,6 +4,7 @@ include "refresh.php";
 include "server.php";
 include "irc_server.php";
 include "soldat_server.php";
+include "mysql_server.php";
 
 /* Just a wrapper to manage the irc_server */
 class mock_pps {
@@ -13,6 +14,7 @@ class mock_pps {
 
     public function __construct() 
     {
+        $this->database = new mysql_server( "localhost", "pps", "noodles", "pps" );
     }
 
     public function __destruct()
@@ -33,14 +35,13 @@ class mock_pps {
         $this->servers["$ip:$port"]->parse_line( $buffer );
     }
 
+    public function test_gather( $ip, $port, $players )
+    {
+        $this->servers["$ip:$port"]->test_gather( $players );
+    }
+
     public function connect()
     {
-        $this->database = new mysqli( "localhost", "pps", "noodles", "pps" );
-        if( !$this->database ) {
-            echo "Could not connect to database\n";
-            exit(-1);
-        }
-
         foreach( $this->servers as $key => $server ) {
             if( $server->type === SERVER_TYPE_IRC ) {
                 $server->connect();
@@ -98,47 +99,49 @@ class mock_pps {
 
     public function bind_user_auth( $name, $auth, $code ) 
     {
-        $data = mysqli_query($this->database, "SELECT name FROM players WHERE code=\"$code\"");
-        $record = mysqli_fetch_array($data);
-        if( !$record ) {
-            return "Could not locate record for code:$secret_code";
-        }
-        else {
-            mysqli_query($this->database, "UPDATE players SET auth=\"$auth\" WHERE code=\"$code\"");
-            $name = $record['name'];
-            return "Sucess! User $name, has been updated with auth:$auth";
-        }
+        $this->database->connect();
+        $result = $this->database->bind_user_auth( $name, $auth, $code );
+        $this->database->disconnect();
+        return $result; 
+    }
+
+    public function get_auth_stats_string( $auth ) {
+        $this->database->connect();
+        $record = $this->database->get_auth_stats( $auth );
+        $this->database->disconnect();
+
+        if( !$record ) return null;
+
+        $name = $record['name'];
+        $rating = $record['rating'];
+        $KD = $record['kd'];
+        $kills = $record['kills'];
+        $deaths = $record['deaths'];
+        $caps = $record['caps'];
+        $CG = $record['cg'];
+        $grabs = $record['grabs'];
+        $played = $record['time_played'];
+        $pm = $record['plusminus'];
+
+
+        //IRC message string
+        return "$name rating: $rating KD: $kd CG: $CG +/-:$pm played(minutes):$played";
     }
 
     public function get_auth_stats( $auth ) {
-        $data = mysqli_query($this->database, "SELECT * FROM players WHERE auth=\"$auth\"");
-        if( $data ) {
-            $record = mysqli_fetch_array( $data );
-            if( $record ) {
-                $name = $record['name'];
-                $rating = $record['rating'];
-                $kills = $record['kills'];
-                $deaths = $record['deaths'];
-                $caps = $record['caps'];
-                $grabs = $record['grabs'];
-                $played = $record['time_played'];
-                $pm = $record['plusminus'];
-                return "$name rating:$rating k/d:$kills/$deaths c/g:$caps/$grabs +/-:$pm played(minutes):$played";
-            }
-            else {
-                return null;
-            }
-        } else {
-            return null;
-        }
+        $this->database->connect();
+        $result = $this->database->get_auth_stats( $auth );
+        $this->database->disconnect();
+        return $result;
     }
 }
 
 
 function test( &$pps, $ip ) 
 {
-    $pps->test( $ip, "6667", ":cat!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    //$pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
+    //$pps->test( $ip, "6667", ":cat!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!test gather 1 2 3" );// 4 5 6" );
+    $pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!test add manate astr" );
+    exit( 0 );
     $pps->test( $ip, "6667", ":dog!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
     //$pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
     $pps->test( $ip, "6667", ":rat!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
@@ -159,10 +162,18 @@ function test( &$pps, $ip )
     exit(0);
 }
 
+function test_gather( &$pps, $ip ) 
+{
+    $ratings = array( 10, 9, 8, 7, 6, 5 );
+    $pps->test_gather( $ip, "6667", $ratings );
+    exit( 0 );
+}
+
 $pps = new mock_pps();
 $pps->add_game_server( "192.210.137.129", "23073", "noodles" );
 $ip = gethostbyname("irc.quakenet.org");
 $pps->add_chat_server( $ip, "6667", "LouisXIV", "#soldat.na" );
+//test_gather( $pps, $ip );
 //test( $pps, $ip );
 $pps->connect();
 $pps->monitor();

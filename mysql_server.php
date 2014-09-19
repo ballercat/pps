@@ -131,41 +131,12 @@ class mysql_server extends ppsserver {
         return "Failed to update auth. user:$name  auth:$auth";
     }
 
-    public function auth_stats_to_string( $record )
-    {
-        if( !$record ) return null;
-
-        $name = $record['name'];
-        $rating = $record['rating'];
-        $KD = $record['kd'];
-        $kills = $record['kills'];
-        $deaths = $record['deaths'];
-        $caps = $record['caps'];
-        $CG = $record['cg'];
-        $grabs = $record['grabs'];
-        $played = $record['time_played'];
-        $pm = $record['plusminus'];
-
-        //IRC message string
-        return "$name rating: $rating KD: $kd CG: $CG +/-:$pm played(minutes):$played";
-    }
-
     public function get_auth_stats( $auth )
     {
         $result = $this->mysqli->query( "SELECT * FROM players WHERE auth=\"$auth\"" );
         if( $result ) {
             $record = $result->fetch_array( MYSQLI_ASSOC );
-            $name = $record['name'];
-            $rating = $record['rating'];
-            $kills = $record['kills'];
-            $deaths = $record['deaths'];
-            $caps = $record['caps'];
-            $grabs = $record['grabs'];
-            $played = $record['time_played'];
-            $pm = $record['plusminus'];
-
-            //IRC message string
-            return record;
+            return $record; 
         }
 
         return null;

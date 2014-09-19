@@ -60,6 +60,35 @@ class irc_server extends ppsserver {
         $this->gc = 0;
     }
 
+    public function test_gather( $players ) {
+        $tg = new gather_man( 0 );
+
+        $names = array( "cat", "dog", "mouse", "duck", "sheep", "wolf" );
+        $i = 0;
+        foreach( $players as  $rating ) {
+            $result = false;
+            $name = $names[$i];
+            if( $rating ) {
+                $result = $tg->add_rated( $name, $rating );
+            }
+            else {
+                $result = $tg->add( $name );
+            }
+
+            $this->send( $result, $this->chan );
+            $i++;
+        }
+        if( $i < 5 ) {
+            for( $i ; $i < 6; $i++ ) {
+                $result = $tg->add( $names[$i] );
+                $this->send( $result, $this->chan );
+            }
+        }
+
+        $this->send( $tg->start(), $this->chan );
+        unset( $tg );
+    }
+
     public function get_info() 
     {
         return "IRC server: $this->ip : $this->port ($this->chan)";
@@ -119,7 +148,7 @@ class irc_server extends ppsserver {
 
     public function parse_line( $line )
     {   if( !strlen($line) ) return;
-        
+        echo "$line\n";      
         if( $this->connected && !$this->hooked ) {
             if( $line == "ERROR :Your host is trying to (re)connect too fast -- throttled" ) return;
             if( strpos($line, "End of /MOTD command.") !== false ) {
@@ -149,7 +178,6 @@ class irc_server extends ppsserver {
             $this->Q_respond( $cmd, explode(' ', $args) );
             return;
         }
-        echo "$line\n";
 
         //Check for nick changes
         if( strpos($line, "NICK") ) {
@@ -209,11 +237,6 @@ class irc_server extends ppsserver {
     }
 
     /* Bellow are commands called from IRC */
-    public function test( $user, $line )
-    {
-        $this->send( "test command called!", $this->chan );
-    }
-
     public function quit( $user, $line )
     {
         $this->send( "quit called: Leaving", $this->chan );
@@ -242,7 +265,7 @@ class irc_server extends ppsserver {
             return;
         }
             
-        $result = $this->pps->get_auth_stats($this->auth);
+        $result = $this->pps->get_auth_stats_string($this->auth);
         if( $result ) {
             $this->send( $result, $this->chan );
         }
@@ -266,11 +289,18 @@ class irc_server extends ppsserver {
             $this->whois( $user,  "add" );
             return;
         } 
+        $auth_record = $this->pps->get_auth_stats( $this->auth );
 
         if( !array_key_exists($this->gc, $this->gathers) ) {
             $this->gathers[$this->gc] = new gather_man( $this->gc );
         } 
-        $result = $this->gathers[$this->gc]->add( $user );
+
+        $result = false;
+        if( $auth_record ) 
+            $result = $this->gathers[$this->gc]->add_rated( $user, $auth_record['rating'] );
+        else
+            $result = $this->gathers[$this->gc]->add( $user );
+        
         if( !$result ) return;
         $this->send( $result, $this->chan );
 
@@ -286,6 +316,28 @@ class irc_server extends ppsserver {
         if( $result )
             $this->send( $result, $this->chan );
     }
+
+    public function test ( $user, $args = null ) {
+        if( $args[0] && $args[0] == 'gather' ) {
+            $ratings = array();
+            foreach( $args as $rating ) {
+                if( !is_numeric($rating) ) continue;
+                $ratings[] = $rating;
+            }
+            $this->test_gather( $ratings );
+        }
+        else if( $args[0] && $args[0] == 'add' ) {
+            if( $args[1] ) {
+                $this->auth = 'nooober';
+                if( $args[2] ) {
+                    $this->auth = $args[2];
+                }
+                $this->add( $args[1] );
+                $this->auth = null;
+            }
+        }
+    }
+
 }
 
 ?>

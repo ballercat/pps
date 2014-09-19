@@ -255,8 +255,27 @@ class pps{
         return $this->db->bind_user_auth( $name, $auth, $code );
     }
 
+    public function get_auth_stats_string( $auth ) {
+        $record = $this->db->get_auth_stats( $auth );
+        if( !$record ) return null;
+
+        $name = $record['name'];
+        $rating = $record['rating'];
+        $KD = $record['kd'];
+        $kills = $record['kills'];
+        $deaths = $record['deaths'];
+        $caps = $record['caps'];
+        $CG = $record['cg'];
+        $grabs = $record['grabs'];
+        $played = $record['time_played'];
+        $pm = $record['plusminus'];
+
+        //IRC message string
+        return "$name rating: $rating KD: $kd CG: $CG +/-:$pm played(minutes):$played";
+    }
+
     public function get_auth_stats( $auth ) {
-        return $this->db->auth_stats_to_string( $this->db->get_auth_stats() ); 
+        return $this->db->auth_stats( $auth );
     }
 }
 
