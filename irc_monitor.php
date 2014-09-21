@@ -3,14 +3,20 @@
 include "refresh.php";
 include "server.php";
 include "irc_server.php";
-include "soldat_server.php";
+include "gather_server.php";
 include "mysql_server.php";
 
 /* Just a wrapper to manage the irc_server */
+/* This also is responsible for tying the irc class with 
+ * the soldat server class */
 class mock_pps {
     public $servers     = [];
     public $sockets     = [];
     public $database    = null;
+
+    public $available_game_server = [];
+
+    public $nullserver = null;
 
     public function __construct() 
     {
@@ -22,7 +28,8 @@ class mock_pps {
     }
 
     public function add_game_server( $ip, $port, $adminlog ) {
-        $this->servers["$ip:$port"] = new soldat_server( $this, $ip, $port, $adminlog );
+        $this->servers["$ip:$port"] = new gather_server( $this, $ip, $port, $adminlog );
+        $this->available_game_server["$ip:$port"] = true;
     }
 
     public function add_chat_server( $ip, $port, $nick, $chan ) {
@@ -134,6 +141,23 @@ class mock_pps {
         $this->database->disconnect();
         return $result;
     }
+
+    //Return a server reference or null
+    public function &request_game_server() {
+        foreach( $this->available_game_server as $key => $available ) {
+            if( $available ) {
+                $this->available_game_server[$key] = false;
+                return $this->server[$key];
+            }
+        }
+        return $this->nullserver;
+    }
+
+    public function release_game_server( $server_key ) {
+        if( array_key_exists($server_key, $this->available_game_server) ) {
+            $this->available_game_server[ $server_key ] = true;
+        }
+    }
 }
 
 
@@ -170,9 +194,9 @@ function test_gather( &$pps, $ip )
 }
 
 $pps = new mock_pps();
-$pps->add_game_server( "192.210.137.129", "23073", "noodles" );
+$pps->add_game_server( "192.210.137.129", "40001", "noodles" );
 $ip = gethostbyname("irc.quakenet.org");
-$pps->add_chat_server( $ip, "6667", "LouisXIV", "#soldat.na" );
+$pps->add_chat_server( $ip, "6667", "HenryVIII", "#soldat.na" );
 //test_gather( $pps, $ip );
 //test( $pps, $ip );
 $pps->connect();

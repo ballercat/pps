@@ -44,7 +44,6 @@ class gather_man {
     public $top_rating = 0;
     public $rating_player_average = 0;
     public $rating_team_average = 0;
-    
 
     public function __construct( $p_game_number ) 
     {
@@ -59,6 +58,11 @@ class gather_man {
     public function is_full() 
     {
         return ($this->pc === 6);
+    }
+
+    public function is_empty()
+    {
+        return ( $this->pc === 0 );
     }
 
     public function is_added( $name ) 
@@ -201,8 +205,10 @@ class gather_man {
 
     //Start a new gather game
     //Return formated string with the teams etc.,
-    public function start()
+    public function start( &$server )
     {
+        $this->game_server = $server;
+
         mt_srand( crc32(microtime()) );
 
         $result = BOLD. "Gather starting!";
@@ -292,6 +298,11 @@ class gather_man {
         }
 
         return null;
+    }
+
+    public function player_join()
+    {
+
     }
 
 }

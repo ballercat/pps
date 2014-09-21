@@ -48,6 +48,7 @@ class irc_server extends ppsserver {
 
     public $gathers;
     public $gc;
+    public $current_gather = null;
 
     public function __construct($ip, $port, $nick, $channel) 
     {
@@ -291,30 +292,48 @@ class irc_server extends ppsserver {
         } 
         $auth_record = $this->pps->get_auth_stats( $this->auth );
 
-        if( !array_key_exists($this->gc, $this->gathers) ) {
-            $this->gathers[$this->gc] = new gather_man( $this->gc );
-        } 
+        if( $this->current_gather === null ) {
+            $game_server = $this->pps->request_game_server();
+
+            if( $game_server == null ) { //No available game servers 
+                $this->send( 'No available game servers.', $this->chan );
+                return;
+            }
+            $this->gc++;
+            $this->current_gather = new gather_man( $this->gc );
+            $this->gathers[$this->gc] = $this->current_gather;
+        }
 
         $result = false;
         if( $auth_record ) 
-            $result = $this->gathers[$this->gc]->add_rated( $user, $auth_record['rating'] );
+            $result = $this->current_gather->add_rated( $user, $auth_record['rating'] );
         else
-            $result = $this->gathers[$this->gc]->add( $user );
+            $result = $this->current_gather->add( $user );
         
         if( !$result ) return;
         $this->send( $result, $this->chan );
 
-        if( $this->gathers[$this->gc]->is_full() ) {
-            $result = $this->gathers[$this->gc]->start();
+        if( $this->current_gather->is_full() ) {
+            $result = $this->current_gather->start();
             $this->send( $result, $this->chan );
-            $this->gc++;
         }
     }
 
     public function del ( $user, $args = null ) {
-        $result = $this->gathers[$this->gc]->del( $user );
-        if( $result )
-            $this->send( $result, $this->chan );
+        if( $this->current_gather != null ) {
+            $result = $this->current_gather->del( $user );
+            if( $result )
+                $this->send( $result, $this->chan );
+            
+            //Remove the gather its empty
+            if( $this->current_gather->is_empty() ) {
+                $this->send( 'Empty. Deleting gather ' . $this->current_gather->game_number, $this->chan );
+
+                unset( $this->gathers[$this->current_gather->game_number] );
+                $this->current_gather = null;
+                
+            }
+        }
     }
 
     public function test ( $user, $args = null ) {
