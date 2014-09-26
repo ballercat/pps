@@ -63,10 +63,23 @@ var
     unpause_timer : byte;
     unpause : boolean;
 
+
 procedure MessageAll( message : string );
-begin
-    WriteConsole( 0, message, $EE81FAA1 );
-end;
+    begin
+        WriteConsole( 0, message, $EE81FAA1 );
+    end;
+
+procedure PrivateMessage( player_id : byte; message : string );
+    begin
+        if player_id = 0 then
+            begin
+                MessageAll( message );
+            end
+        else begin
+            WriteConsole( player_id, message, $FF34DBB7 );
+        end;
+
+    end;
 
 procedure ChangeMap( Map : string );
     begin
@@ -235,8 +248,8 @@ begin
     end; // end for loop
 
     //Vote timeout stuff
-    if(vote_active = true) and (vote_to <> 0) then vote_to := vote_to - 1;
     if(vote_active = true) and (vote_to = 0) then CancelVote();
+    if(vote_active = true) and (vote_to <> 0) then vote_to := vote_to - 1;
     
     if unpause = true then
         begin
@@ -435,6 +448,7 @@ begin
     else
     if Text = '!info'  then   WriteConsole(ID, 'Progressive Play System. Idle on irc: #soldat.na', $0000FF00) else
     if Text = '!rating'  then WriteLn( 'PRATE'+GetPlayerStat(ID,'name') ) else
+    if Text = '!rank' then WriteLn( 'PRANK'+GetPlayerStat(ID,'name') ) else
     if(Text = '!auth') or (Text = '!code') or (Text = '!secret')  then   WriteLn( 'RCODE'+GetPlayerStat(ID,'name') ) else
     if(Text = '!1') or (Text ='!a') or (Text = '!alpha') then Command('/setteam1 ' + IntToStr(ID)) else
     if(Text = '!2') or (Text ='!b') or (Text = '!bravo') then Command('/setteam2 ' + IntToStr(ID)) else
@@ -459,6 +473,14 @@ begin
         begin
             StartUnbanlastVote();
             CastVote( ID );
+        end else
+    if Text = '!gatheron' then
+        begin
+            gather_mode := true;
+        end else
+    if Text = '!gatheroff' then
+        begin
+            gather_mode := false;
         end else
     if(Text = '!v') or (Text = '!vote') or (Text = '!yes') or (Text = '!y') or (Text = '!m') then CastVote( ID );
 
@@ -515,7 +537,6 @@ function OnCommand( ID : Byte; Text : string ): boolean;
 begin
     if Text = '/ppson' then
         begin
-            MessageAll( 'PPS Stats Script has connected.' );
             pps_connected := true;
         end
     else if Text = '/gatheron' then
@@ -525,6 +546,10 @@ begin
     else if Text = '/gatheroff' then
         begin
             gather_mode := false;
+        end
+    else if(GetPiece(Text,' ',0) = '/pvm') then
+        begin
+            PrivateMessage( StrToInt(GetPiece(Text, ' ', 1)), Copy(Text,9,120) );
         end;
 
     Result := false;
@@ -534,7 +559,6 @@ procedure OnAdminDisconnect( IP: string);
 begin
     if IP = '127.0.0.1' then
         begin
-            MessageAll( 'PPS Stats Script has disconnected.' );
             pps_connected := false;
         end;
 end;
