@@ -217,6 +217,47 @@ class mysql_server extends ppsserver {
     {
         $this->mysqli->query( "UPDATE weapons SET kills=kills+$kills WHERE weapon=\"$weapon\"" );
     }
+
+    public function get_player_rank( $name, $user_id = null, $code = null, $auth = null, $hwid = null )
+    {
+        echo "USERID: $user_id\n";
+        $token = 'name';
+        $value = $name;
+        if( $user_id != null ) {
+            $token = 'user_id';
+            $value = $user_id;
+        } 
+        else if( $code != null ) {
+            $token = 'code';
+            $value = $code;
+        }
+        else if( $auth != null ) {
+            $token = 'auth';
+            $value = $auth;
+        }
+        else if( $hwid != null ) {
+            $token = 'hwid';
+            $value = $hwid;
+        }
+
+        //query
+        $this->mysqli->query( "SET @rownum = 0;" );
+        $this->mysqli->query( "SET @total = 0;" );
+        $query = "SELECT $token, rating,rank, @total as total FROM(";
+        $query .= "SELECT players.$token, players.rating,@rownum := @rownum + 1 as rank,@total := @total + 1 ";
+        $query .= "FROM players ORDER BY rating DESC)`selection` ";
+        $query .= "WHERE $token = '$value';";
+
+        $result = $this->mysqli->query( $query );
+        
+        $record = false;
+        if( $result ) {
+            //array( 'token' => 'value', 'rank' => %i, 'rating' => %d, 'total' => %d );
+            $record = $result->fetch_array( MYSQLI_ASSOC );
+        } 
+
+        return $record;
+    }
 }
 
 ?>

@@ -1,6 +1,6 @@
 <?php
 /*
-This file 'soldat_server.php' is part of the PPS project <http://code.google.com/p/fracsnetpps/>
+This file 'gather_server.php' is part of the PPS project <http://code.google.com/p/fracsnetpps/>
 
 Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
@@ -24,21 +24,23 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
 define( 'SERVER_TYPE_SOLDAT', 2 );
 
-class soldat_server extends ppsserver {
+/* Gather server is different from regular soldat server in that
+ * it does not keep track of the stats other than the team scores 
+ */
+class gather_server extends ppsserver {
     public $m_adminlog;
     
     public $State;
     
-    public $stats = null; /* Note: Initialize outside the class! */
-    public $pps;    
+    public $irc;    
     
     public $refresh;
     public $m_timeout;
 
     public $type = SERVER_TYPE_SOLDAT;
 
-    public function __construct($pps, $ip, $port, $adminlog, $timeout = 10, $reconnect = true ){
-        $this->pps = $pps;
+    public function __construct($irc, $ip, $port, $adminlog, $timeout = 10, $reconnect = true ){
+        $this->irc = $irc;
         $this->ip = $ip;
         $this->port = $port;
         $this->m_adminlog = $adminlog;
@@ -47,6 +49,7 @@ class soldat_server extends ppsserver {
         
         $this->State = 0;
         
+        $this->stats = null;
         $this->join_try = null;
         
         $this->sock = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
@@ -68,17 +71,11 @@ class soldat_server extends ppsserver {
         socket_write( $this->sock, $logstr );
         $this->State = CONNECTED;
         $this->connected = true;
-    
-        if( $this->stats ) {
-            $refresh = $this->get_refreshx();
-            var_dump( $refresh );
-        }
     }
     
     public function reconnect($timeout = 5) {
         //socket_shutdown( $this->sock ); //Shutting down non-connected socket gives a warning [107]. Weird
-        socket_close( $this->sock );
-        unset( $this->sock );
+        $this->disconnect();
 
         sleep( $timeout );
         $this->connected = false;
@@ -86,18 +83,22 @@ class soldat_server extends ppsserver {
         $this->connect( $timeout );
     }
     
+    public function disconnect() 
+    {
+        socket_close( $this->sock );
+        unset( $this->sock );
+    }
+
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function get_info() 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
-        echo "GET REFRESHX\n";
         $refresh = $this->get_refreshx();
         $info = "[$this->ip:$this->port] : " . $refresh['players'] . "/12  Map: ". $refresh['map'];
         return $info;
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    // This function uses a separate socket to get game info
     public function get_refreshx() {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
         $sock = fsockopen( $this->ip, $this->port );
@@ -119,9 +120,6 @@ class soldat_server extends ppsserver {
         fclose($sock);
         return $info;
     }  
-
-    public function set_stats() {
-    }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function send( $data ) 
@@ -149,9 +147,7 @@ class soldat_server extends ppsserver {
     public function private_message($id, $message)
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
-        //NOTE: Sending $id zero messages all players
-        //NOTE: /pvm is a custom command. $id has to be two digits
-        $this->send( "/pvm ". sprintf("%02d", $id) . " $message" ); 
+       $this->send( "/pm $id $message" ); 
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -161,9 +157,9 @@ class soldat_server extends ppsserver {
 
         $lines = explode( "\r\n", $this->buffer );
         foreach( $lines as $line ) {
-            //use a custom line parser
             if( $this->line_parser != null ) {
-                $this->line_parser( $this, $line );
+                $parser = $this->line_parser;
+                $parser( $this, $line );
             }
             else {
                 $this->parse_line( $line );
@@ -183,114 +179,39 @@ class soldat_server extends ppsserver {
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    public function PKILL( $line ) 
+    public function PJOIN( $line ) 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
-        if( $this->stats )
-            $this->stats->ch_kill( $line );
-    }
+        list( $cmd, $hwid, $id, $team, $name ) = explode( " ", $line, 5 );
 
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    public function PJOIN( $line ) {
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-        if( $this->stats ) {
-            if( !$this->pps->m_SQL_ON  ) {
-                $this->pps->connect_mysql();
-            }
-            $this->stats->ch_join( $line );
+        if( $team == 2 || $team == 1 ) {
+            $this->pc++;
+            if( $team == 1 )
+                $this->alpha[ $name ] = 1;
+            if( $team == 2 )
+                $this->bravo[ $name ] = 2;
         }
-
-        //we still want to update the player count
-        $this->pps->m_TPC++;
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function PLEFT( $line ) 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
-        if( $this->stats ) 
-            $this->stats->ch_left( $line );
-
-        //we still want to update the player count
-        $this->pps->m_TPC--;
+        $this->irc->register_left( $line );
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function NXMAP( $line )
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
-        if( $this->stats )
-            $this->stats->ch_nextmap( $line );
-    }
-
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    public function PGRAB( $line )
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    {
-        if( $this->stats && $this->stats->T->pc > 1 )
-            $this->stats->ch_grab( $line );
+        $this->irc->register_next_map( $line );
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function PCAPF( $line )
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
-        if( $this->stats && $this->stats->T->pc > 1 )
-            $this->stats->ch_cap( $line );
-    }
-
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    public function PRETF( $line )
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    {
-        if( $this->stats && $this->stats->T->pc > 1 )
-            $this->stats->ch_return( $line );
-    }
-
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    public function PRATE( $line )
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    {
-        if( !$this->stats ) return;
-
-        $name = substr( $line, 5 );
-        if( $this->stats->T->is_playing($name) ) { 
-            $P = &$this->stats->T->ps[$name];
-            if( $P->sigma != 8.3 && $P->mu != 25 )
-                $this->private_message( $P->p_id, "Rating: " . round($P->rating,2) );
-            else
-                $this->private_message( $P->p_id, "Not yet rated. No full games played" );
-        }
-    }
-
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    public function RCODE( $line )
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    {
-        if( !$this->stats ) return;
-
-        $name = substr( $line, 5);
-        if( $this->stats->T->is_playing($name) ) {
-            $P = &$this->stats->T->ps[$name];
-            $this->private_message( $P->p_id, "Secret Code: $P->code" );
-        }
-    }
-
-    public function PRANK( $line )
-    {
-        if( !$this->stats ) return;
-
-        $name = substr( $line, 5 );
-        if( $this->stats->T->is_playing($name) ) {
-            $P = &$this->stats->T->ps[$name];
-            $result = $this->pps->get_player_rank( null, null, null, null, $P->hwid ); 
-            if( $result != false ) {
-                $this->private_message( 0, "$P->acc_name is Ranked: " . $result['rank'] . "/" . $result['total'] );
-            }
-            else {
-                $this->private_message( 0, "$P->acc_name is not Ranked!" );
-            }
-        }
+        $this->irc->register_cap( $line );
     }
 
 }

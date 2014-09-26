@@ -59,10 +59,11 @@ class mock_pps {
 
     public function monitor()
     {
-        $socks = $this->sockets;
+        $socks = array_values( $this->sockets );
         do{
-            if( count($socks) != $this->sockets ) {
-                $socks = $this->sockets;
+            if( count($socks) != count($this->sockets) ) {
+                echo "Sockets update\n";
+                $socks = array_values($this->sockets);
             } 
 
             $r = $socks;
@@ -77,6 +78,7 @@ class mock_pps {
             else {
                 foreach( $r as $socket ) {
                     socket_getpeername( $socket, $IP, $PORT );
+                    echo "socket $IP:$PORT\n";
                     $this->servers["$IP:$PORT"]->readbuffer();
                 }
             }
@@ -142,12 +144,23 @@ class mock_pps {
         return $result;
     }
 
+    public function get_player_rank( $name, $user_id = null, $code = null, $auth = null, $hwid = null )
+    {
+        $this->database->connect();
+        $result = $this->database->get_player_rank( $name, $user_id, $code, $auth, $hwid );
+        $this->database->disconnect();
+        return $result;
+    }
+
     //Return a server reference or null
     public function &request_game_server() {
         foreach( $this->available_game_server as $key => $available ) {
             if( $available ) {
                 $this->available_game_server[$key] = false;
-                return $this->server[$key];
+                $this->servers[$key]->connect();
+                $this->sockets[$key] = $this->servers[$key]->sock;
+
+                return $this->servers[$key];
             }
         }
         return $this->nullserver;
@@ -156,6 +169,17 @@ class mock_pps {
     public function release_game_server( $server_key ) {
         if( array_key_exists($server_key, $this->available_game_server) ) {
             $this->available_game_server[ $server_key ] = true;
+            $this->servers[$server_key]->send( "/gatheroff" );
+            $this->servers[$server_key]->disconnect();
+            $this->servers[$server_key]->set_line_parser( null );
+
+            unset( $this->sockets[$server_key] );
+        }
+    }
+
+    public function free_all_servers() {
+        foreach( $this->available_game_server as $key => $available ) {
+            $this->release_game_server( $key );
         }
     }
 }

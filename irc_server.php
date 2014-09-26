@@ -62,7 +62,23 @@ class irc_server extends ppsserver {
     }
 
     public function test_gather( $players ) {
-        $tg = new gather_man( 0 );
+        $game_server = $this->pps->request_game_server();
+        if( !$game_server ) {
+            $this->send( "No available game servers.", $this->chan );
+            return;
+        }
+
+        $tg = new gather_man( 0, $game_server );
+
+        $irc_copy = $this;
+        $line_parser = function ( $caller, $line  ) use ($irc_copy) {
+            $cmd = substr( $line, 0, 5 );
+            if( method_exists('irc_server', $cmd) ) {
+                $irc_copy->$cmd( $caller, $line );
+            } 
+        };
+
+        $game_server->set_line_parser( $line_parser );
 
         $names = array( "cat", "dog", "mouse", "duck", "sheep", "wolf" );
         $i = 0;
@@ -87,7 +103,8 @@ class irc_server extends ppsserver {
         }
 
         $this->send( $tg->start(), $this->chan );
-        unset( $tg );
+        //unset( $tg );
+        $this->gathers["$game_server->ip:$game_server->port"] = $tg;
     }
 
     public function get_info() 
@@ -152,7 +169,7 @@ class irc_server extends ppsserver {
         echo "$line\n";      
         if( $this->connected && !$this->hooked ) {
             if( $line == "ERROR :Your host is trying to (re)connect too fast -- throttled" ) return;
-            if( strpos($line, "End of /MOTD command.") !== false ) {
+            if( strpos($line, "End of /MOTD command.") !== false || strpos($line, "MOTD File is missing") ) {
                 $this->send( "AUTH ppsbot yak1soba", "Q@CServe.quakenet.org" );
                 socket_write( $this->sock, "JOIN $this->chan\r\n" );
                 $this->hooked = true;
@@ -275,6 +292,26 @@ class irc_server extends ppsserver {
         }
     } 
 
+    public function rank( $user, $args = null ) {
+        if( $this->auth === null ) {
+            $this->whois( $user, "rank" );
+            return;
+        }
+
+        if( $this->auth === false ) return;
+
+        $result = $this->pps->get_auth_stats( $this->auth );
+        if( !$result ) {
+            $this->send( "Auth `$this->auth` is not recognized\n", $this->chan );
+            return;
+        }
+        $name = $result['name'];
+        $result = $this->pps->get_player_rank( $name );
+        if( $result ) {
+            $this->send( $name . "s rank: " . $result['rank'] . "/" . $result['total'], $this->chan );
+        }
+    }
+
     public function ls ( $user, $args = null ) {
         exec( "ps aux | grep php", $output );
         foreach( $output as $line ) {
@@ -299,9 +336,25 @@ class irc_server extends ppsserver {
                 $this->send( 'No available game servers.', $this->chan );
                 return;
             }
+            
+            //Custom line parser for getting live soldat updates 
+            $irc_copy = $this;
+            $line_parser = function ( $caller, $line  ) use ($irc_copy) {
+                $cmd = substr( $line, 0, 5 );
+                echo "Soldat callback: $cmd\n";
+                if( method_exists('irc_server', $cmd) ) {
+                    $irc_copy->$cmd( $caller, $line );
+                } 
+            };
+
             $this->gc++;
-            $this->current_gather = new gather_man( $this->gc );
-            $this->gathers[$this->gc] = $this->current_gather;
+
+            $game_server->set_line_parser( $line_parser );
+            $this->current_gather = new gather_man( $this->gc, $game_server );
+            //Override the default soldat line parser
+            $ip = $game_server->ip;
+            $port = $game_server->port;
+            $this->gathers["$ip:$port"] = $this->current_gather;
         }
 
         $result = false;
@@ -355,8 +408,60 @@ class irc_server extends ppsserver {
                 $this->auth = null;
             }
         }
+        else if( $args[0] && $args[0] == 'free' ) {
+            $this->send( "Freeing all servers", $this->chan );
+        }
     }
 
+    //SOLDAT SERVER COMMANDS
+    public function PJOIN( $caller, $line ) {
+        list( $cmd, $hwid, $id, $team, $name ) = explode( " ", $line, 5 );
+
+        //We can hook in here to tie the HWID to the auth!
+        //NOTE: Check for no-shows here! Awesome.
+        //TODO: HWID stuff, compare with/any currently rated players added 
+
+        //ALPHA: 1, BRAVO: 2 SPEC: 5
+        if( $team == 1 || $team == 2 ) {
+            $port = $caller->port;
+            $ip = $caller->ip;
+            $this->gathers["$ip:$port"]->game_pc++;
+            $gm = $this->gathers["$ip:$port"]->game_number;
+            $gpc = $this->gathers["$ip:$port"]->game_pc;
+
+            if( $team == 1 )
+                $this->send( "Gather #$gm [$ip:$port]". RED . " * Player joined($gpc/6): $name" . BLACK, $this->chan );
+            if( $team == 2 )
+                $this->send( "Gather #$gm [$ip:$port]". BLUE . " * Player joined($gpc/6): $name" . BLACK, $this->chan );
+        }
+    }
+
+    public function PLEFT( $caller, $line ) {
+        list( $cmd, $id, $team, $name ) = explode( " ", $line, 4 );
+
+        $leave_time = time();
+        if( $team == 1 || $team == 2 ) {
+            $port = $caller->port;
+            $ip = $caller->ip;
+            $this->gathers["$ip:$port"]->game_pc--;
+        }
+    }
+
+    public function PCAPF( $caller, $line ) {
+        $ip = $caller->ip;
+        $port = $caller->port;
+        $this->gathers["$ip:$port"]->cap(); 
+    }
+
+    public function NXMAP( $caller, $line ) {
+        echo "nextmap\n";
+        $ip = $caller->ip;
+        $port = $caller->port;
+        $result = $this->gathers["$ip:$port"]->nextmap();
+        if( $result != false ) {
+            $this->send( $result, $this->chan );
+        }
+    }
 }
 
 ?>

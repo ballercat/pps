@@ -37,6 +37,8 @@ class gather_man {
     public $game_number;
     public $game_server;
 
+    public $game_password;
+
     //Rating related data
     public $rated_players;
     public $rated_player_count = 0;
@@ -45,14 +47,25 @@ class gather_man {
     public $rating_player_average = 0;
     public $rating_team_average = 0;
 
-    public function __construct( $p_game_number ) 
+    //Game data
+    public $game_map = "";
+    public $game_pc = 0;
+    public $game_timer = 0;
+    public $game_alpha_score = 0;
+    public $game_bravo_score = 0;
+    public $game_map_timer = 0;
+
+    public function __construct( $p_game_number, $game_server ) 
     {
+        $this->game_server = $game_server;
         $this->game_number = $p_game_number;
         $this->pc = 0;
         $this->rated_players = array();
         $this->players = array();
         $this->alpha = new team( 1 );
         $this->bravo = new team( 2 );
+        $this->game_timer = time();
+        $this->game_map_timer = time();
     }
 
     public function is_full() 
@@ -205,10 +218,8 @@ class gather_man {
 
     //Start a new gather game
     //Return formated string with the teams etc.,
-    public function start( &$server )
+    public function start( )
     {
-        $this->game_server = $server;
-
         mt_srand( crc32(microtime()) );
 
         $result = BOLD. "Gather starting!";
@@ -233,7 +244,6 @@ class gather_man {
         //Do the leftover shuffling
         $this->shuffle_teams( 1 );
 
-
         //Format result
         $result .= RED . "Alpha Team(";
         $result .= round($this->alpha->average_rating(),2) . "):";
@@ -248,6 +258,12 @@ class gather_man {
             $result .= " " . $p;
         }
         $result .= BLACK . "\n";
+        //Generate password
+        $this->game_password = sprintf( "%03d", mt_rand(1, 999) );
+        $this->game_server->send("/password $this->game_password");
+        $this->game_server->send("/gatheron");
+        $result .= "Gather #$this->game_number: Default map ctf_Laos";
+        $result .= ".cliker: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password\n";
 
         return $result;
     }
@@ -300,9 +316,37 @@ class gather_man {
         return null;
     }
 
-    public function player_join()
+    public function cap()
     {
+        $refresh = $this->game_server->get_refreshx();
 
+        $this->game_alpha_score = $refresh['team'][1];
+        $this->game_bravo_score = $refresh['team'][2];
+    }
+
+    public function nextmap() 
+    {
+        //if( $this->game_pc != 6 ) return false;
+
+        $timer = time() - $this->game_map_timer;
+
+/*        if( $this->game_alpha_score != 10 && $this->game_bravo_score != 10 ) {
+            if( $timer < 300 ) {
+                return false;
+            } 
+}*/
+
+        $refresh = $this->game_server->get_refreshx();
+        
+        $timer = sprintf( "%02.2f", $timer/60 );
+        $result = $this->map . " has finished after " . $timer . "min. With score: " . $this->game_alpha_score . " - " . $this->game_bravo_score;   
+
+        $this->game_alpha_score = 0;
+        $this->game_bravo_score = 0;
+        $this->game_map_timer = time();
+        $this->map = $refresh['map'];
+
+        return $result;
     }
 
 }

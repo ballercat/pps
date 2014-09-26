@@ -277,6 +277,11 @@ class pps{
     public function get_auth_stats( $auth ) {
         return $this->db->auth_stats( $auth );
     }
+
+    public function get_player_rank( $name, $user_id = null, $code = null, $auth = null, $hwid = null )
+    {
+        return $this->db->get_player_rank( $name, $user_id, $code, $auth, $hwid );
+    }
 }
 
 $test = new pps( $SERVER_LIST );

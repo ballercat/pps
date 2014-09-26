@@ -43,6 +43,7 @@ class base_stats{
     private $leavers; /* Players that left before the map finished */
     private $left_count;
 
+    public $limit; //Cap limit of the game
     
 	/* ---------------------------------------------------------------------------------------------------------------------- */
     public function __construct( &$database, &$server, $refresh = null ){
@@ -66,10 +67,11 @@ class base_stats{
             
             $this->pc = 0;
             if( isset( $refresh ) ){
+                $this->limit = $refresh['limit'];
+
                 if( $refresh['players'] ){
-        
-                    //$dublicate = false;
-        
+                    $this->server->private_message( 0, "Stats script connected" );
+
                     for( $i = 0; $i < $refresh['players']; $i++ ){                        
                         $name = $refresh['player'][$i]['name'];
                         $id = $refresh['player'][$i]['id'];
@@ -81,12 +83,12 @@ class base_stats{
 
                         if( $record ) {
                             $player = new base_player( $record, $name ); 
-                            echo "player found pm it\n";
-                            $this->server->private_message( $id, "Script connected $player->acc_name your stats are now tracked." );
+                            $this->server->private_message( $id, "$player->acc_name your stats are now being tracked." );
                         }
                         else {
                             $player = $this->new_player( $hwid, $name );
-                            $this->server->private_message( $id, "Script connected. New player:$name registered. Secret code: $player->code" );
+                            $this->server->private_message( $id, "Hello, $name. This name has been registered as a new account.");
+                            $this->server->private_message( $id, "Secret code: $player->code" );
                         }
 
                         $this->T->add( $name, $team, $id, $player );
@@ -169,7 +171,7 @@ class base_stats{
             
             if( $record ){ 
                 $player = new base_player( $record, $name );
-                $this->server->private_message( $id, " Welcome back $player->acc_name" );
+                $this->server->private_message( $id, "Welcome back $player->acc_name" );
             } else {
                 //Not recognized player
                 $player = $this->new_player( $hwid, $name );
@@ -199,7 +201,6 @@ class base_stats{
             }elseif( $this->T->pc > 6 ){
                 foreach( $this->leavers as $key ){
                     $this->T->remove($key);
-                    echo "-> Removing player that left: $key new pc ", $this->T->pc , "\n";
                     unset($this->leavers[$key]);
                 }
                 $this->leavers = array();

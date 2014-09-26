@@ -31,6 +31,8 @@ class ppsserver {
 
     public $connected = false;
 
+    public $line_parser = null; //Can be used to override regular line parser
+
     public function is_connected() { return $this->connected; }
     public function get_info() { return "Info function not supported on server"; }
     public function clear_buffer() { $this->buffer = null; }
@@ -39,6 +41,10 @@ class ppsserver {
     public function readbuffer() {}
     public function parse_buffer() {}
     public function parse_line( $line ) {}
+
+    public function set_line_parser( $parser ) {
+        $this->line_parser = $parser;
+    }
 
 }
 
