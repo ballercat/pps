@@ -46,6 +46,12 @@ class ppsserver {
         $this->line_parser = $parser;
     }
 
+    //Callback caller
+    public function call( $cb_name, $args ) {
+        //NOTE: This is a weak point
+        $this->$cb_name( $args );
+    }
+
 }
 
 ?>

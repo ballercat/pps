@@ -39,6 +39,8 @@ class gather_man {
 
     public $game_password;
 
+    public $gather_timeout = false;
+
     //Rating related data
     public $rated_players;
     public $rated_player_count = 0;
@@ -54,6 +56,7 @@ class gather_man {
     public $game_alpha_score = 0;
     public $game_bravo_score = 0;
     public $game_map_timer = 0;
+    public $game_tiebreaker = "ctf_Laos";
 
     public function __construct( $p_game_number, $game_server ) 
     {
@@ -76,6 +79,22 @@ class gather_man {
     public function is_empty()
     {
         return ( $this->pc === 0 );
+    }
+
+    public function set_timeout( $timeout ) {
+        $this->gather_timeout = $this->game_timer + $timeout; 
+    }
+
+    public function timeout( $player_count ) {
+        if( $player_count < 6 && (time() >= $this->gather_timeout) ) {
+            $result = BOLD . "Gather $this->game_number has timed out. Deleting" . BOLD;
+            return $result;
+        }
+        if( $player_count > 5 && (time() >= $this->gather_timeout) ) {
+            $this->gather_timeout = false;
+        }
+
+        return false;
     }
 
     public function is_added( $name ) 
@@ -262,8 +281,8 @@ class gather_man {
         $this->game_password = sprintf( "%03d", mt_rand(1, 999) );
         $this->game_server->send("/password $this->game_password");
         $this->game_server->send("/gatheron");
-        $result .= "Gather #$this->game_number: Default map ctf_Laos";
-        $result .= ".cliker: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password\n";
+        $result .= "Gather #$this->game_number: Default map $this->game_tiebreaker";
+        $result .= ". clicker: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password\n";
 
         return $result;
     }
@@ -307,6 +326,7 @@ class gather_man {
          
         foreach( $this->players as $key => $p ) {
             if( $p === $name ) {
+                $this->pc--;
                 unset( $this->players[$key] );
                 $this->players = array_values( $this->players );
                 return $this->get_info();
@@ -339,14 +359,22 @@ class gather_man {
         $refresh = $this->game_server->get_refreshx();
         
         $timer = sprintf( "%02.2f", $timer/60 );
-        $result = $this->map . " has finished after " . $timer . "min. With score: " . $this->game_alpha_score . " - " . $this->game_bravo_score;   
+        $result = $this->game_map . " has finished after " . $timer . "min. With score: " . $this->game_alpha_score . " - " . $this->game_bravo_score;   
 
         $this->game_alpha_score = 0;
         $this->game_bravo_score = 0;
         $this->game_map_timer = time();
-        $this->map = $refresh['map'];
+        $this->game_map = $refresh['map'];
 
         return $result;
+    }
+
+    public function player_joined() {
+        $this->game_pc++;
+    }
+
+    public function player_left() {
+        $this->game_pc--;
     }
 
 }

@@ -69,9 +69,9 @@ class soldat_server extends ppsserver {
         $this->State = CONNECTED;
         $this->connected = true;
     
+        //??
         if( $this->stats ) {
             $refresh = $this->get_refreshx();
-            var_dump( $refresh );
         }
     }
     
@@ -180,15 +180,19 @@ class soldat_server extends ppsserver {
             $this->$cmd( $line );
             return;
         }
+
+        //Thanks to soldat script core total failure i have to do this
+        if( strpos($line, "killed (") ) {
+            $this->stats->ch_kill( $line );
+        }
     }
 
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+	/*
     public function PKILL( $line ) 
-	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
         if( $this->stats )
             $this->stats->ch_kill( $line );
-    }
+    }*/
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function PJOIN( $line ) {

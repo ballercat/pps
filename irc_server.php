@@ -70,14 +70,6 @@ class irc_server extends ppsserver {
 
         $tg = new gather_man( 0, $game_server );
 
-        $irc_copy = $this;
-        $line_parser = function ( $caller, $line  ) use ($irc_copy) {
-            $cmd = substr( $line, 0, 5 );
-            if( method_exists('irc_server', $cmd) ) {
-                $irc_copy->$cmd( $caller, $line );
-            } 
-        };
-
         $game_server->set_line_parser( $line_parser );
 
         $names = array( "cat", "dog", "mouse", "duck", "sheep", "wolf" );
@@ -102,9 +94,7 @@ class irc_server extends ppsserver {
             }
         }
 
-        $this->send( $tg->start(), $this->chan );
-        //unset( $tg );
-        $this->gathers["$game_server->ip:$game_server->port"] = $tg;
+        $this->start_gather( $tg, 0, 20 );
     }
 
     public function get_info() 
@@ -337,24 +327,9 @@ class irc_server extends ppsserver {
                 return;
             }
             
-            //Custom line parser for getting live soldat updates 
-            $irc_copy = $this;
-            $line_parser = function ( $caller, $line  ) use ($irc_copy) {
-                $cmd = substr( $line, 0, 5 );
-                echo "Soldat callback: $cmd\n";
-                if( method_exists('irc_server', $cmd) ) {
-                    $irc_copy->$cmd( $caller, $line );
-                } 
-            };
-
             $this->gc++;
 
-            $game_server->set_line_parser( $line_parser );
             $this->current_gather = new gather_man( $this->gc, $game_server );
-            //Override the default soldat line parser
-            $ip = $game_server->ip;
-            $port = $game_server->port;
-            $this->gathers["$ip:$port"] = $this->current_gather;
         }
 
         $result = false;
@@ -367,8 +342,8 @@ class irc_server extends ppsserver {
         $this->send( $result, $this->chan );
 
         if( $this->current_gather->is_full() ) {
-            $result = $this->current_gather->start();
-            $this->send( $result, $this->chan );
+            //Start gather
+            $this->start_gather( $this->current_gather );
         }
     }
 
@@ -382,7 +357,7 @@ class irc_server extends ppsserver {
             if( $this->current_gather->is_empty() ) {
                 $this->send( 'Empty. Deleting gather ' . $this->current_gather->game_number, $this->chan );
 
-                unset( $this->gathers[$this->current_gather->game_number] );
+                $this->end_gather( $this->current_gather );
                 $this->current_gather = null;
                 
             }
@@ -411,10 +386,75 @@ class irc_server extends ppsserver {
         else if( $args[0] && $args[0] == 'free' ) {
             $this->send( "Freeing all servers", $this->chan );
         }
+        else if( $args[0] && $args[0] == 'empty' ) {
+            $this->send( "Freeing everything", $this->chan );
+            unset( $this->gathers );
+            $this->gathers = [];
+        }
+
     }
+
+    //Callback for automated gather timeout
+    public function timeout( $args ) {
+        $refresh = $this->gathers[$args["key"]]->game_server->get_refreshx();
+        if( !$refresh ) return;
+
+        $result = $this->gathers[$args["key"]]->timeout( $refresh['players'] );
+
+        if( $result ) {
+            $this->send( $result, $this->chan );
+            $this->end_gather( $this->gathers[$args["key"]] );
+        }
+    }
+
+    public function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {
+        //Custom line parser for getting live soldat updates 
+        $irc_copy = $this;
+        $line_parser = function ( $caller, $line  ) use ($irc_copy) {
+            $cmd = substr( $line, 0, 5 );
+            echo "$line\n";
+            if( method_exists('irc_server', $cmd) ) {
+                $irc_copy->$cmd( $caller, $line );
+            } 
+        };
+
+        $gather->game_server->set_line_parser( $line_parser );
+
+        $ip = $gather->game_server->ip;
+        $port = $gather->game_server->port;
+
+        $this->send( $gather->start(), $this->chan );
+        $gather->game_server->set_tiebreaker( $gather->game_tiebreaker );
+
+        if( $tm_min || $tm_sec ) {
+            $gather->game_server->set_timer( $tm_min * 60 + $tm_sec, "$ip:$port" );
+            $this->send( "This gather has a $tm_min minute $tm_sec second timeout.", $this->chan );
+        }
+
+        $this->gathers["$ip:$port"] = $gather;
+    }
+
+    public function end_gather( $gather ) {
+        $ip = $gather->game_server->ip;
+        $port = $gather->game_server->port;
+
+        echo "Release $ip:$port server\n";
+        $this->pps->release_game_server( "$ip:$port" );
+
+        unset( $this->gathers["$ip:$port"] );
+    }        
+         
 
     //SOLDAT SERVER COMMANDS
     public function PJOIN( $caller, $line ) {
+        $port = $caller->port;
+        $ip = $caller->ip;
+        if( !array_key_exists("$ip:$port", $this->gathers) ) return;
+        
+        if( $this->gathers["$ip:$port"]->gather_timeout ) {
+            $this->timeout( array("key" => "$ip:$port") );
+        }
+
         list( $cmd, $hwid, $id, $team, $name ) = explode( " ", $line, 5 );
 
         //We can hook in here to tie the HWID to the auth!
@@ -423,8 +463,6 @@ class irc_server extends ppsserver {
 
         //ALPHA: 1, BRAVO: 2 SPEC: 5
         if( $team == 1 || $team == 2 ) {
-            $port = $caller->port;
-            $ip = $caller->ip;
             $this->gathers["$ip:$port"]->game_pc++;
             $gm = $this->gathers["$ip:$port"]->game_number;
             $gpc = $this->gathers["$ip:$port"]->game_pc;
@@ -437,12 +475,18 @@ class irc_server extends ppsserver {
     }
 
     public function PLEFT( $caller, $line ) {
+        $port = $caller->port;
+        $ip = $caller->ip;
+        if( !array_key_exists("$ip:$port", $this->gathers) ) return;
+
+        if( $this->gathers["$ip:$port"]->gather_timeout ) {
+            $this->timeout( array("key" => "$ip:$port") );
+        }
+
         list( $cmd, $id, $team, $name ) = explode( " ", $line, 4 );
 
         $leave_time = time();
         if( $team == 1 || $team == 2 ) {
-            $port = $caller->port;
-            $ip = $caller->ip;
             $this->gathers["$ip:$port"]->game_pc--;
         }
     }
@@ -450,17 +494,32 @@ class irc_server extends ppsserver {
     public function PCAPF( $caller, $line ) {
         $ip = $caller->ip;
         $port = $caller->port;
+        if( !array_key_exists("$ip:$port", $this->gathers) ) return;
+
         $this->gathers["$ip:$port"]->cap(); 
     }
 
     public function NXMAP( $caller, $line ) {
-        echo "nextmap\n";
         $ip = $caller->ip;
         $port = $caller->port;
+        if( !array_key_exists("$ip:$port", $this->gathers) ) return;
+
+        if( $this->gathers["$ip:$port"]->gather_timeout ) {
+            $this->timeout( array("key" => "$ip:$port") );
+        }
+
         $result = $this->gathers["$ip:$port"]->nextmap();
         if( $result != false ) {
             $this->send( $result, $this->chan );
         }
+    }
+
+    public function TIMER( $caller, $line ) {
+        //I can't really do poll events in php very well.
+        //But Soldat can... sending /timer <seconds> <string> to soldat server will make it fire off this 
+        //command back to console after <seconds> with <string> suplied
+        list( $cmd, $key ) = explode( " ", $line, 2 );
+        $this->timeout( array("key" => $key) );
     }
 }
 

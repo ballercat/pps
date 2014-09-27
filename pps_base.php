@@ -243,13 +243,24 @@ class base_stats{
 	/* ---------------------------------------------------------------------------------------------------------------------- */
     public function ch_kill( $line ){/* Returns false on ahem, false positive.. */
 	/* ---------------------------------------------------------------------------------------------------------------------- */
-        list( $cmd, $kn, $vn, $weapon ) = explode( " ", $line, 4 );
-         
-        $killer = &$this->T->get_player_with_id( $kn );//&$this->T->ps[$kn];
-        $victim = &$this->T->get_player_with_id( $vn );//&$this->T->ps[$vn];
+        //list( $cmd, $kn, $vn, $weapon ) = explode( " ", $line, 4 );
+        $loc = ( strrpos($line, "with") ) + 5;         
+        $weapon = substr( $line, $loc );
+        $kn = substr( $line, 4, strpos($line, " killed") - 4 );
+        $vn = substr( $line, strpos($line, " killed (") + 12, strrpos($line, " with") - (strpos($line, " killed (") + 12));
+
+        $killer = &$this->T->get_player_with_name( $kn );//&$this->T->ps[$kn];
+        $victim = &$this->T->get_player_with_name( $vn );//&$this->T->ps[$vn];
 
         if( !$killer || !$victim ) {
             //echo "Error killer/victim is not present in system!\n";
+            return false;
+        }
+        
+        if( $kn == $vn ) {
+            $killer->d_buffer++;
+            $killer->w[$weapon]++;
+            $killer->kill_timer = time();
             return;
         }
 
@@ -276,6 +287,7 @@ class base_stats{
         if( $killer->dominated[$victim->p_id] > 4 ){
             $k = ( $killer->acc_name ) ? $killer->acc_name : $killer->name;
             $d = ( $victim->acc_name ) ? $victim->acc_name : $victim->name;
+            $domn = null;
             switch( $killer->dominated[$victim->p_id] )
             {
                 case 5:

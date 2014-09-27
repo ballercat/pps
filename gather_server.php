@@ -65,6 +65,8 @@ class gather_server extends ppsserver {
             return;
         }        
 
+        $this->sock = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
+
         socket_connect( $this->sock, $this->ip, $this->port);
 
         $logstr = $this->m_adminlog . "\r\n";
@@ -148,6 +150,16 @@ class gather_server extends ppsserver {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
        $this->send( "/pm $id $message" ); 
+    }
+
+    public function set_tiebreaker( $tiebreaker )
+    {
+        $this->send( "/tiebreaker $tiebreaker" );
+    }
+
+    public function set_timer( $seconds, $data )
+    {
+        $this->send( "/timer $seconds $data" );
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    

@@ -91,6 +91,7 @@ procedure StartMapVote( Map : string );
         vote_active := true;
         vote_cmd := '/map ' + Map;
         vote_type := 'Map';
+        vote_to := 10;
         MessageAll('Map vote started: ' + Map)
     end;
 
@@ -390,7 +391,9 @@ end;
 
 procedure OnPlayerKill(Killer, Victim: Byte; Weapon: String);
 begin
-    WriteLn( 'PKILL ' + inttostr(Killer) + ' ' +  inttostr(Victim) + ' ' + Weapon ); 
+    //Soldat is bugged. Unreliable Weapon variable, can be Desert Eagles when it should be grenade,m79
+    //WriteLn( 'PKILL ' + inttostr(Killer) + ' ' +  inttostr(Victim) + ' ' + Weapon ); 
+    if Killer = Victim then WriteLn('(' + inttostr(Killer) + ') ' + GetPlayerStat(Killer, 'Name') + ' killed (' + inttostr(Killer) + ') ' + GetPlayerStat(Killer, 'Name') + ' with Selfkill');
 end;
 
 procedure OnWeaponChange(ID, PrimaryNum, SecondaryNum: Byte);
@@ -412,6 +415,7 @@ begin
 				p[ID].pwshot[7] := p[ID].pwshot[7] - 1;
 			end
 		end end
+        
 	end else begin
 		if PrimaryNum <> 0 then begin if PrimaryNum < 11 then begin
 			if PrimaryNum <> p[ID].pweapon then begin
@@ -428,8 +432,8 @@ begin
 			end
 		end end
 	end 
+    
 end;
-
 procedure OnPlayerSpeak(ID: byte; Text: string);
 begin
     if( GetPlayerStat(ID, 'human') <> true ) then begin exit; end;
