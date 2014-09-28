@@ -346,7 +346,7 @@ class irc_server extends ppsserver {
 
         if( $this->current_gather->is_full() ) {
             //Start gather
-            $this->start_gather( $this->current_gather );
+            $this->start_gather( $this->current_gather, 2 );
         }
     }
 
@@ -415,8 +415,14 @@ class irc_server extends ppsserver {
         $irc_copy = $this;
         $line_parser = function ( $caller, $line  ) use ($irc_copy) {
             $cmd = substr( $line, 0, 5 );
-            echo "$line\n";
+            //echo "$line\n";
+            
             if( method_exists('irc_server', $cmd) ) {
+                $key = "$caller->ip:$caller->port";
+                if( $irc_copy->gathers[$key]->gather_timeout ) {
+                    $irc_copy->timeout( array( "key" => $key ) );
+                }
+
                 $irc_copy->$cmd( $caller, $line );
             } 
         };
@@ -431,6 +437,7 @@ class irc_server extends ppsserver {
 
         if( $tm_min || $tm_sec ) {
             $gather->game_server->set_timer( $tm_min * 60 + $tm_sec, "$ip:$port" );
+            $gather->set_timeout( $tm_min * 60 + $tm_sec );
             $this->send( "This gather has a $tm_min minute $tm_sec second timeout.", $this->chan );
         }
 
