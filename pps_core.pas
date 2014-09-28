@@ -63,6 +63,17 @@ var
     unpause_timer : byte;
     unpause : boolean;
 
+    balance_timer : byte;
+
+function abs2(val: integer) : integer;
+begin
+    Result := iif(val < 0, -val, val);
+end;
+
+procedure WarnAll( message : string );
+begin
+    WriteConsole( 0, message, $FFFFFF00 );
+end;
 
 procedure MessageAll( message : string );
     begin
@@ -100,7 +111,7 @@ procedure StartBanKickVote( Name : string );
         vote_active := true;
         vote_cmd := Name;
         vote_type := 'Ban';
-        vote_to := 5;
+        vote_to := 30;
         MessageAll('Kickban vote started: ' + Name);
     end;
 
@@ -111,11 +122,15 @@ procedure PassBanKickVote( );
 
 procedure StartUnbanlastVote();
     begin
-        vote_active := true;
-        vote_cmd := '/unbanlast';
-        vote_type := 'Unban';
-        vote_to := 5;
-        MessageAll('Unbanlast vote started.');
+        if gather_mode = true then begin
+            MessageAll('Unbanlast');
+        end else begin
+            vote_active := true;
+            vote_cmd := '/unbanlast';
+            vote_type := 'Unban';
+            vote_to := 5;
+            MessageAll('Unbanlast vote started.');
+        end;
     end;
 
 procedure StartNextmapVote( );
@@ -123,7 +138,7 @@ procedure StartNextmapVote( );
         vote_active := true;
         vote_cmd := '/nextmap';
         vote_type := 'Nextmap';
-        vote_to := 5;
+        vote_to := 25;
         MessageAll('Nextmap vote started.');
     end;
 
@@ -162,6 +177,61 @@ procedure CastVote( ID: byte );
             end;
     end;
 
+function GetTeamArray(Team: byte) : Array of byte;
+var i, x: integer;
+begin
+    i := 1;
+    x := 0;
+    while i < 32 do 
+    begin
+        if GetPlayerStat(i, 'Active') = true then begin
+            if GetPlayerStat(i, 'Team') = Team then begin
+                SetArrayLength(Result, x + 1);
+                Result[x] := i;
+                x := x + 1;
+            end;
+        end;
+        i := i + 1;
+    end;
+end;
+
+procedure NormalBalance();
+var
+    i, iAlphaPlayers, iBravoPlayers : integer;
+    team_from, team_to : byte;
+    players : Array of byte;
+begin
+    if balance_timer > 0 then begin
+        WarnAll('Teams can only balance every 20sec');
+        Exit;
+    end;
+    iBravoPlayers := BravoPlayers;
+    iAlphaPlayers := AlphaPlayers;
+    if abs2(iBravoPlayers - iAlphaPlayers) > 1 then
+    begin
+        if BravoPlayers > AlphaPlayers then begin
+            team_to := 1;
+            team_from := 2;
+        end;
+        if AlphaPlayers > BravoPlayers then begin
+            team_to := 2;
+            team_from := 1;
+        end;
+    end else begin
+        Exit;
+    end;
+        
+    players := GetTeamArray( team_from );
+    while (true) do begin
+        i := players[Random(0, GetArrayLength(players) - 1)];
+        if GetPlayerStat(i, 'Flagger') = false then break;
+    end;
+    
+    Command('/setteam' + inttostr(team_to) + ' ' + inttostr(i));
+    MessageAll( 'Teams balanced' );
+    balance_timer := 60 * 20;
+end;
+
 procedure OnGameEnd();
 begin
     WriteLn('NXMAP');
@@ -170,27 +240,27 @@ end;
 procedure ActivateServer();
 begin
 // Set the number of bullets for the main weapons 
-	wbullets[1] := 7;
-	wbullets[2] := 30;
-	wbullets[3] := 40;
-	wbullets[4] := 25;
-	wbullets[5] := 8;
-	wbullets[6] := 4;
-	wbullets[7] := 1;
-	wbullets[8] := 10;
-	wbullets[9] := 50;
-	wbullets[10] := 200;
-	
-	wdmg_min[1] := 24; wdmg_max[1] := 40;
-	wdmg_min[2] := 14; wdmg_max[2] := 26;
-	wdmg_min[3] := 19; wdmg_max[3] := 30;
-	wdmg_min[4] := 15; wdmg_max[4] := 23;
-	wdmg_min[5] := 1; wdmg_max[5] := 1;
-	wdmg_min[6] := 59; wdmg_max[6] := 96;
-	wdmg_min[7] := 10000; wdmg_max[7] := 20000;
-	wdmg_min[8] := 200; wdmg_max[8] := 330;
-	wdmg_min[9] := 16; wdmg_max[9] := 28;
-	wdmg_min[10] := 1; wdmg_max[10] := 1;
+    wbullets[1] := 7;
+    wbullets[2] := 30;
+    wbullets[3] := 40;
+    wbullets[4] := 25;
+    wbullets[5] := 8;
+    wbullets[6] := 4;
+    wbullets[7] := 1;
+    wbullets[8] := 10;
+    wbullets[9] := 50;
+    wbullets[10] := 200;
+
+    wdmg_min[1] := 24; wdmg_max[1] := 40;
+    wdmg_min[2] := 14; wdmg_max[2] := 26;
+    wdmg_min[3] := 19; wdmg_max[3] := 30;
+    wdmg_min[4] := 15; wdmg_max[4] := 23;
+    wdmg_min[5] := 1; wdmg_max[5] := 1;
+    wdmg_min[6] := 59; wdmg_max[6] := 96;
+    wdmg_min[7] := 10000; wdmg_max[7] := 20000;
+    wdmg_min[8] := 200; wdmg_max[8] := 330;
+    wdmg_min[9] := 16; wdmg_max[9] := 28;
+    wdmg_min[10] := 1; wdmg_max[10] := 1;
 
     //Initialize vote variables
     vote_req := 1;
@@ -262,7 +332,12 @@ begin
 
     //Vote timeout stuff
     if(vote_active = true) and (vote_to = 0) then CancelVote();
-    if(vote_active = true) then MessageAll(inttostr(vote_to) + 's left...');
+    if(vote_active = true) then 
+        begin
+            if vote_to mod  5 = 0 then begin
+                WarnAll(inttostr(vote_to) + 's left to ' + vote_type + '...');
+            end;
+        end;
     if(vote_active = true) and (vote_to <> 0) then vote_to := vote_to - 1;
  
     if unpause = true then
@@ -274,7 +349,7 @@ begin
                     unpause := false;
                 end
             else begin
-                MessageAll(IntToStr(unpause_timer) + '...');
+                WarnAll(IntToStr(unpause_timer) + '...');
                 unpause_timer := unpause_timer - 1;
             end;
         end;
@@ -359,9 +434,11 @@ begin
 
     WriteLn('PJOIN '+GetPlayerStat(ID,'hwid')+' ' + inttostr(ID) + ' ' + inttostr(Team) + ' ' + GetPlayerStat(ID, 'name'));
 
-    vote_req := NumPlayers*0.6;
+    vote_req := 2;//NumPlayers*0.5;
     pc := NumPlayers - NumBots;
-
+    
+    if Abs(BravoPlayers - AlphaPlayers) > 1 then NormalBalance();
+    
     //Player initialize
 	p[ID].pammo_a := -2;
 	p[ID].pammo_l := 0;
@@ -460,7 +537,8 @@ begin
     else if(Text = '!cmd') or (Text = '!commands') then
         begin
             if pps_connected = true then MessageAll( 'Stats commands: !rating, !auth.' );
-            MessageAll( 'Game commands: !info, !a, !b, !s, !map, !bankick, !ub, !v' );
+            MessageAll( 'Game commands: !info, !a, !b, !s, !map, !bankick, !ub, !n, !bal' );
+            MessageAll( 'Yes vote: !yes, !y, !v, !vote' );
         end
     else
     if Text = '!info'  then   WriteConsole(ID, 'Progressive Play System. Idle on irc: #soldat.na', $0000FF00) else
@@ -500,9 +578,11 @@ begin
                 begin
                     StartNextmapVote();
                     CastVote( ID );
-                end;
+                end
+            else if(vote_active = true) and (vote_type = 'Nextmap') then CastVote( ID );
         end else
-    if(Text = '!v') or (Text = '!vote') or (Text = '!yes') or (Text = '!y') or (Text = '!m') then CastVote( ID );
+    if(Text = '!bal') or (Text = '!balance') or (Text = '!teams') or (Text = '!team') then NormalBalance() else
+    if(Text = '!v') or (Text = '!vote') or (Text = '!yes') or (Text = '!y') then CastVote( ID );
 
     if gather_mode = true then
         begin
