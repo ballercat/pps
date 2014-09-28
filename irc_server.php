@@ -45,6 +45,7 @@ class irc_server extends ppsserver {
     public $auth_try;
     public $auth_cb;
     public $auth = null;
+    public $auth_cb_args = null;
 
     public $gathers;
     public $gc;
@@ -221,7 +222,7 @@ class irc_server extends ppsserver {
             //$args = explode(' ', $args );
             $this->auth = substr($args[5], 0, -2);
             $cb = $this->auth_cb;
-            $this->$cb( $args[2] );
+            $this->$cb( $args[2], $this->auth_cb_args );
             $this->auth = null;
             $this->auth_cb = null;
         } 
@@ -238,9 +239,9 @@ class irc_server extends ppsserver {
         $this->send( "WHOIS $name", "Q" );
     }
 
-    private function authenticate( $user, $account ) 
+    private function authenticate( $user, $account, $code ) 
     {
-        $result = $this->pps->bind_user_auth( $user, $account, $this->auth_try );
+        $result = $this->pps->bind_user_auth( $user, $account, $code );
         $this->send($result, $user);
     }
 
@@ -261,10 +262,12 @@ class irc_server extends ppsserver {
 
     public function auth ( $user, $args = null ) {
         if( $this->auth === null ) {
+            $this->auth_cb_args = $args; 
             $this->whois( $user, "auth" );
             return;
         }
-        $this->authenticate( $user, $this->auth );
+        
+        $this->authenticate( $user, $this->auth, $args[0] );
     }
 
     public function rating ( $user, $args = null ) {

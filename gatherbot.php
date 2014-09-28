@@ -107,6 +107,7 @@ class mock_pps {
     public function bind_user_auth( $name, $auth, $code ) 
     {
         $this->database->connect();
+        echo "Bind user auth: $name $auth $code\n";
         $result = $this->database->bind_user_auth( $name, $auth, $code );
         $this->database->disconnect();
         return $result; 
