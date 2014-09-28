@@ -100,7 +100,8 @@ procedure StartBanKickVote( Name : string );
         vote_active := true;
         vote_cmd := Name;
         vote_type := 'Ban';
-        MessageAll('Kickbacn vote started: ' + Name);
+        vote_to := 5;
+        MessageAll('Kickban vote started: ' + Name);
     end;
 
 procedure PassBanKickVote( );
@@ -113,7 +114,17 @@ procedure StartUnbanlastVote();
         vote_active := true;
         vote_cmd := '/unbanlast';
         vote_type := 'Unban';
+        vote_to := 5;
         MessageAll('Unbanlast vote started.');
+    end;
+
+procedure StartNextmapVote( );
+    begin
+        vote_active := true;
+        vote_cmd := '/nextmap';
+        vote_type := 'Nextmap';
+        vote_to := 5;
+        MessageAll('Nextmap vote started.');
     end;
 
 procedure CancelVote();
@@ -142,6 +153,7 @@ procedure CastVote( ID: byte );
 
                 if( vote_num*1.0 >= vote_req ) then
                     begin
+                        MessageAll('Vote passed');
                         if vote_type = 'Ban' then PassBanKickVote();
                         Command( vote_cmd );
                         CancelVote();
@@ -250,8 +262,9 @@ begin
 
     //Vote timeout stuff
     if(vote_active = true) and (vote_to = 0) then CancelVote();
+    if(vote_active = true) then MessageAll(inttostr(vote_to) + 's left...');
     if(vote_active = true) and (vote_to <> 0) then vote_to := vote_to - 1;
-    
+ 
     if unpause = true then
         begin
             if unpause_timer = 0 then
@@ -347,7 +360,7 @@ begin
     WriteLn('PJOIN '+GetPlayerStat(ID,'hwid')+' ' + inttostr(ID) + ' ' + inttostr(Team) + ' ' + GetPlayerStat(ID, 'name'));
 
     vote_req := NumPlayers*0.6;
-    pc := NumPlayers;
+    pc := NumPlayers - NumBots;
 
     //Player initialize
 	p[ID].pammo_a := -2;
@@ -473,18 +486,21 @@ begin
             StartBanKickVote( Copy(Text, 10, 120 ) );
             CastVote( ID );
         end else
-    if Text = '!ub' then 
+    if(Text = '!ub') or (Text = '!unban') then 
         begin
-            StartUnbanlastVote();
-            CastVote( ID );
+            if vote_active = false then
+                begin
+                    StartUnbanlastVote();
+                    CastVote( ID );
+                end;
         end else
-    if Text = '!gatheron' then
+    if(Text = '!n') or (Text = '!nextmap') or (Text = '!next') then
         begin
-            gather_mode := true;
-        end else
-    if Text = '!gatheroff' then
-        begin
-            gather_mode := false;
+            if vote_active = false then
+                begin
+                    StartNextmapVote();
+                    CastVote( ID );
+                end;
         end else
     if(Text = '!v') or (Text = '!vote') or (Text = '!yes') or (Text = '!y') or (Text = '!m') then CastVote( ID );
 
