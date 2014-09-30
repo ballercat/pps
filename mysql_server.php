@@ -172,6 +172,8 @@ class mysql_server extends ppsserver {
     public function write_player_stats( &$player )
     {
        
+        if( !$this->connected ) $this->connect();
+
         $this->prep->bind_param('iiiiiiiiddddiiiiiiiiiiiiiiiiiiiddids', 
                                         $player->k,
                                         $player->d,

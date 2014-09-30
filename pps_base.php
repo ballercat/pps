@@ -458,7 +458,9 @@ class base_stats{
         
         $l_pc = $loose->count;
         $w_pc = $win->count;
-        
+
+        if( $w_pc === 0 || $l_pc === 0 ) return;
+
         /* Generate temporary teams */
         foreach( $this->T->ps as $name => $player ){
             if( $this->T->ps[$name]->is_rated ){

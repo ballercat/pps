@@ -211,17 +211,21 @@ function test( &$pps, $ip )
 }
 
 function test_gather( &$pps, $ip ) 
+
 {
+    $pps->servers["$ip:1337"]->connect();
+    $pps->servers["$ip:1337"]->send('/nextmap');
+    exit( 0 );
     $ratings = array( 10, 9, 8, 7, 6, 5 );
     $pps->test_gather( $ip, "6667", $ratings );
     exit( 0 );
 }
 
 $pps = new mock_pps();
-$pps->add_game_server( "192.210.137.129", "40001", "noodles" );
+$pps->add_game_server( "192.210.137.129", "1337", "noodles" );
 $ip = gethostbyname("irc.quakenet.org");
 $pps->add_chat_server( $ip, "6667", "HenryVIII", "#soldat.na" );
-//test_gather( $pps, $ip );
+test_gather( $pps, "192.210.137.129" );
 //test( $pps, $ip );
 $pps->connect();
 $pps->monitor();
