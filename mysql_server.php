@@ -102,6 +102,7 @@ class mysql_server extends ppsserver {
         $prepare_str .= "`Chainsaw`=`Chainsaw`+?,";
         $prepare_str .= "`LAW`=`LAW`+?,";
         $prepare_str .= "`Grenade`=`Grenade`+?,";
+        $prepare_str .= "`Hands`=`Hands`+?,";
         $prepare_str .= "streak=?,";
         $prepare_str .= "plusminus=?,";                
         $prepare_str .= "mu=?,";
@@ -174,7 +175,7 @@ class mysql_server extends ppsserver {
        
         if( !$this->connected ) $this->connect();
 
-        $this->prep->bind_param('iiiiiiiiddddiiiiiiiiiiiiiiiiiiiddids', 
+        $this->prep->bind_param('iiiiiiiiddddiiiiiiiiiiiiiiiiiiiiddids', 
                                         $player->k,
                                         $player->d,
                                         $player->mlt[1],
@@ -204,6 +205,7 @@ class mysql_server extends ppsserver {
                                         $player->w['Chainsaw'],
                                         $player->w['LAW'],
                                         $player->w['Grenade'],
+                                        $player->w['Hands'],
                                         $player->wstreak,
                                         $player->plus_minus,
                                         $player->mu,

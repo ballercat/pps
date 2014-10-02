@@ -420,7 +420,7 @@ class base_stats{
             }
             $this->leavers = array();
 
-            if( $this->T->player_count == 0 ) {
+            if( $this->T->player_count() == 0 ) {
                 $this->db->disconnect();
             }
         }
