@@ -199,6 +199,14 @@ class base_player{
 	
     }
 	
+    public function full_map( $tm ) {
+        if( ($tm - $this->map_timer) > 240 ) {
+            return true;
+        } 
+
+        return false;
+    }
+
     /* Update Functions */
     public function update_kills($weapon){
         if( isset($weapon) ){			

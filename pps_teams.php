@@ -56,7 +56,11 @@ class team{
 
     public function remove( &$player )
     {
-        if( $this->fc == $player->name )
+        if( $this->fc == $player->name ) {
+
+            $this->fc = "";
+        }
+
         $this->sigma -= $player->sigma;
         $this->mu -= $player->mu;
 
@@ -64,6 +68,8 @@ class team{
 
         unset( $this->p[$player->p_id] );
         ksort( $this->p );
+
+        $player->team = null;
     }
 
     public function clear()
@@ -135,8 +141,11 @@ class teams_container{
         
         $this->big_id = 0;
         $this->avid = 1;
+
         for( $i = 0; $i < 32; $i++ ){
+
             $this->ids[$i] = 0;
+
             if( $i == 0 ) $this->ids[$i] = 1;
         }
         
@@ -200,9 +209,12 @@ class teams_container{
                 break;
         }
         
+        //If the player we don't really want to do much.
+        //Just switch the teams
         if( $this->is_playing($name) ) {
-            $this->ps[$name]->team->remove( $this->ps[$name] ); 
-            $this->pc_minus( $this->ps[$name]->team->number );
+           
+            //Remove from original team
+            $this->ps[$name]->team->remove( $this->ps[$name] );
         }
  
         $to->add( $player );
@@ -220,23 +232,24 @@ class teams_container{
 
         $from = $player->team;
 
-        foreach( $from->p as $key => $player )
-        {
-            if( $from->p[$key] == $name ){
-                if( $key == $from->fc ) $from->fc = "";
-                
-                unset($from->p[$key]);
-                ksort($from->p);
-                
-                unset($this->ps[$name]);
-                ksort($this->ps);
-                
-                if( $team != 5 ) $this->pc--;
-                
-                $from->count--;
-                
-                break;
-            }
+        if( $from ) {
+            
+            $from->remove( $player );
+        }
+
+        unset( $this->ps[$name] );
+        ksort( $this->ps );
+    }
+
+    public function left_early( $name ) {
+        
+        $player = $this->get_player_with_name( $name );
+
+        $from = $player->team; 
+
+        if( $from ) {
+
+            $from->remove( $player );
         }
     }
 

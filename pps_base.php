@@ -218,23 +218,30 @@ class base_stats{
         $p_id = $this->T->ps[$name]->p_id;
 
         foreach( $this->T->ps as $key => $plr )
+
             $this->T->ps[$key]->dominated[$p_id] = 0;
         
         /* Change this so that players are no longer automatically removed from 
            the array and their stats updated. Instead, place them into a $leavers
            array, where they remain untill the next map, or they rejoin the server(0% done) */
-        if( $this->T->ps[$name]->team->number == 5 ){
+        if( $this->T->ps[$name]->team->number == 5 ) {
+            
             $this->T->remove($name);
         }else{
-            if( ($leave_time - $this->T->ps[$name]->map_timer) > 180 ){
+
+            if( $this->T->ps[$name]->full_map($leave_time) ) {
+
                 /* Simply dont remove players that played over 3 minutes */
                 $this->leavers[$name] = $name;
+                $this->T->left_early( $name );
             }else{
+
                 $this->T->remove($name);
             }
         }
 
         if( $this->T->player_count() == 0 ) {
+
             $this->db->disconnect();
         }
 
@@ -347,38 +354,51 @@ class base_stats{
 	/* ---------------------------------------------------------------------------------------------------------------------- */
     public function ch_nextmap( $line ){ /* NOTE: Fromat this function better */
 	/* ---------------------------------------------------------------------------------------------------------------------- */
+
         $winner = 0;
         $final_time = time();
         $full_map = false;
-        if( $final_time - $this->map_timer < 300 ){
+
+        if( $final_time - $this->map_timer < 300 ) {
+
             $this->map_timer = $final_time;
-        }else{
+        }else {
+
             $full_map = true;
             $this->map_timer = $final_time;
         }
         
-        if( $this->T->alpha->score != $this->T->bravo->score ){
-            if( $this->T->alpha->score > $this->T->bravo->score ){
+        if( $this->T->alpha->score != $this->T->bravo->score ) {
+
+            if( $this->T->alpha->score > $this->T->bravo->score ) {
+
                 $winner = 1;
             }else{
+
                 $winner = 2;
             }
         }
+
         $this->T->alpha->score = 0;
         $this->T->bravo->score = 0;  
         
-        foreach( $this->T->ps as $key => $player ){
+        foreach( $this->T->ps as $key => $player ) {
+
             $this->T->ps[$key]->dominated = array_fill(0, 33, 0);
         }
         
         /* Everything above this line is necessary after each map */     
 
-        if( false ) { //$this->T->pc < 6 || !$full_map){
-            if( count($this->leavers) ){
-                foreach( $this->leavers as $key ){
+        if( false ) { 
+
+            if( count($this->leavers) ) {
+
+                foreach( $this->leavers as $key ) {
+
                     $this->T->remove($key);
                     unset($this->leavers[$key]);
                 }
+
                 $this->leavers = array();
             }
             
@@ -388,22 +408,28 @@ class base_stats{
         $this->update_ratings($winner);
                 
         /* Update Rated Players */
-        foreach( $this->T->ps as $name => $player ){
+        foreach( $this->T->ps as $name => $player ) {
+
             $this->T->ps[$name]->merge_buffers();
-            if( $winner ){
+
+            if( $winner ) {
+
                 $this->T->ps[$name]->maps++;
             }
             
             /* If the player played more than 5 minutes, update their stats with the buffers */
-            if( time() - $this->T->ps[$name]->map_timer > 240 ){
+            if( $this->T->ps[$name]->full_map( $final_time ) ) {//map_timer > 240 ){
+
                 if( $winner ){
-                    if( $this->T->ps[$name]->team->number == $winner ){
+
+                    if( $this->T->ps[$name]->team->number == $winner ) {
                         $this->T->ps[$name]->wins++;
                     }
                 }
                 
                 $this->T->ps[$name]->merge_buffers();
-                if( $this->T->ps[$name]->is_rated ){
+                if( $this->T->ps[$name]->is_rated ) {
+
                     $this->update_player_stats($this->T->ps[$name]);
                 }
             }
@@ -413,14 +439,18 @@ class base_stats{
         }   
 
         //Clear leaver array 
-        if( count($this->leavers) ){
-            foreach( $this->leavers as $key ){
+        if( count($this->leavers) ) {
+
+            foreach( $this->leavers as $key ) {
+
                 $this->T->remove( $key );
                 unset( $this->leavers[$key] );
             }
+
             $this->leavers = array();
 
             if( $this->T->player_count() == 0 ) {
+
                 $this->db->disconnect();
             }
         }
