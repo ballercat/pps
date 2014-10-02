@@ -82,6 +82,10 @@ class pps{
         $this->m_connected = false;
         $this->m_TPC = 0;
         $this->m_SQL_ON = true;
+
+        echo "Progressive Play System\n";
+        echo "PPS stats script. By ]{ing, whinemore@gmail.com\n";
+        echo date('l jS \of F Y h:i:s A') . "\n";
     }
 
     function __destruct(){
@@ -99,12 +103,12 @@ class pps{
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function pps_connect(){
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */
-        echo "--> Connecting to ". count($this->servers) . " servers..";
         
+        "--> Connecting to ". count($this->servers) . " servers...";
         foreach( $this->servers as $key => $server ){
             echo "[$key:";
             if( $server->type === SERVER_TYPE_SOLDAT )
-                echo ".soldat.";
+                echo " soldat server\n";
             if( $server->type === SERVER_TYPE_IRC ) {
                 if( false ) continue;
                 echo ".irc.";
