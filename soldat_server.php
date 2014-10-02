@@ -58,8 +58,7 @@ class soldat_server extends ppsserver {
         $this->m_timeout = $timeout;
         
         if( @fsockopen($this->ip, $this->port, $errno, $errstr ) === false ) {
-            echo $errstr . "\n";
-            return;
+            return $errstr . "\n";;
         }        
 
         socket_connect( $this->sock, $this->ip, $this->port);

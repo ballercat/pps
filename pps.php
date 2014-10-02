@@ -64,6 +64,8 @@ class pps{
     public function __construct( $server_list )
     /* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */                                    
     { 
+        date_default_timezone_set("America/New_York");
+
         $this->m_start = time();
         $this->m_version = "v0.6.0b updated(08/15/14)";
         
@@ -85,7 +87,7 @@ class pps{
 
         echo "Progressive Play System\n";
         echo "PPS stats script. By ]{ing, whinemore@gmail.com\n";
-        echo date('l jS \of F Y h:i:s A') . "\n";
+        echo date('l jS \of F Y h:i:s A') . "\n\n";
     }
 
     function __destruct(){
@@ -106,30 +108,30 @@ class pps{
         
         "--> Connecting to ". count($this->servers) . " servers...";
         foreach( $this->servers as $key => $server ){
-            echo "[$key:";
+            echo "connect: [$key:";
             if( $server->type === SERVER_TYPE_SOLDAT )
-                echo " soldat server\n";
+                echo "] soldat server...";
             if( $server->type === SERVER_TYPE_IRC ) {
                 if( false ) continue;
-                echo ".irc.";
+                echo " irc...";
             } 
 
-            if( $server->connect() ){
+            $err = $server->connect();
+
+            if( $err ){
                 /* Error */
-                echo "\nServer fail: $key\n";
-                echo "ERROR: ", socket_strerror(socket_last_error()) , "\n";
-                echo "continuing without server...\n";
+                echo ". Server fail: $err";
+                echo "Continuing without server...\n";
             }else{                  
-                echo "].";
+                echo ". OK\n";
             }
         }
 
+        echo "\n";
+
 		$this->db->connect();
 		
-        echo ".";
-
         $this->m_connected = true;
-        echo ". OK\n";
     }
     
     public function get_sockets()
