@@ -28,12 +28,12 @@ define('SPEC', 5 );
 
 class team{
     public $score;
-    public $count;
+    public $count = 0;
     public $p;
     public $fc;
     public $flag;
-    public $sigma;
-    public $mu;
+    public $sigma = 0;
+    public $mu = 0;
     public $number;
     public $rating = 0;
 
@@ -116,6 +116,8 @@ class teams_container{
     public $alpha;
     public $bravo;
     public $spec;
+    public $alpha_leavers;
+    public $bravo_leavers;
 
     public $nullplayer = null;
     private $ids;
@@ -128,17 +130,22 @@ class teams_container{
     public $pc;
     
     private $balance_timeout;
-    
-    public function __construct(&$ssocket){
+
+    public function __construct(&$ssocket) {
+
         $this->alpha = new team(); $this->alpha->number = ALPHA;
         $this->bravo = new team(); $this->bravo->number = BRAVO;
         $this->spec = new team();  $this->spec->number = SPEC;
-        
+
+        //Leaver teams simply pretend to be real teams
+        $this->alpha_leavers = new team(); $this->alpha_leavers->number = ALPHA;
+        $this->bravo_leavers = new team(); $this->bravo_leavers->number = BRAVO;
+
         $this->sock = & $ssocket;
-        
+
         $this->ps = array();
         $this->pc = 0;
-        
+
         $this->big_id = 0;
         $this->avid = 1;
 
@@ -148,8 +155,23 @@ class teams_container{
 
             if( $i == 0 ) $this->ids[$i] = 1;
         }
-        
+
         $this->can_balance = true;
+    }
+
+    public function clear_leavers() {
+
+        foreach( $this->alpha_leavers->p as $key ) {
+
+            $this->remove( $key );
+        }
+        foreach( $this->bravo_leavers->p as $key ) {
+            
+            $this->remove( $key );
+        } 
+
+        $this->alpha_leavers->clear();
+        $this->bravo_leavers->clear();
     }
 
     public function shuffle(){/*
@@ -209,12 +231,28 @@ class teams_container{
                 break;
         }
         
-        //If the player we don't really want to do much.
+        //If the player is playing we don't really want to do much.
         //Just switch the teams
         if( $this->is_playing($name) ) {
            
+            //If a player switched to spec while playing, then
+            //the script counts that as a leave
+            //The only reason this is needed is to guard against
+            //people avoiding a stat hit.
+            if( $to === $this->spec ) {
+
+                if( $player->full_map( time() ) ) {
+
+                    $this->left_early( $name );
+                } 
+            }
+            
             //Remove from original team
             $this->ps[$name]->team->remove( $this->ps[$name] );
+
+            $to->add( $player );
+             
+            return;
         }
  
         $to->add( $player );
@@ -249,8 +287,54 @@ class teams_container{
 
         if( $from ) {
 
+            if( $from->number == SPEC ) { 
+
+                $from->remove( $player );
+                return; //we are done
+            }
+
             $from->remove( $player );
+            $player->left_early = true;
+
+            if( $from->number == ALPHA ) {
+
+                $this->alpha_leavers->add( $player );
+            }
+            else if( $from->number == BRAVO ) {
+
+                $this->bravo_leavers->add( $player );
+            }
         }
+    }
+
+    public function left( $name ) {
+        $player = $this->get_player_with_name( $name );
+
+        if( !$player ) return false; //we are done here
+        if( !$player->team ) {
+
+            $this->remove( $name );
+            return false;
+        }
+        if( $player->team === $this->spec ) {
+            $this->remove( $name );
+            return false;
+        }
+
+        $player_id = $player->p_id;
+        $exit_time = time();
+         
+        if( $player->full_map( $exit_time ) ) {
+
+            $this->left_early( $name );
+        } 
+        else {
+
+            //A player left before stats take effect
+            $this->remove( $name );
+        }
+
+        return $player_id;
     }
 
     public function &get_player_with_id( $id ) 

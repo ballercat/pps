@@ -40,6 +40,7 @@ class gather_man {
     public $game_password;
 
     public $gather_timeout = false;
+    public $gather_started = false;
 
     //Rating related data
     public $rated_players;
@@ -113,7 +114,7 @@ class gather_man {
         foreach( $this->players as $k => $player ) {
             if( $player == $nick ) {
                 //Rated players are a key value pair
-                $this->rated_players[ $n_nick ] = $this->rated_player[ $nick ];
+                $this->rated_players[ $n_nick ] = $this->rated_players[ $nick ];
                 unset( $this->rated_players[ $nick ] );
 
                 //Players array is indexed
@@ -129,19 +130,27 @@ class gather_man {
     public function get_info() {
         $result = "Gather ($this->game_number) | ";
 
-        for( $i = 0; $i < 6; $i++ ) {
-            if( array_key_exists($i, $this->players) ) {
-                $result .= $this->players[$i];
-                if( array_key_exists( $this->players[$i], $this->rated_players) ) {
-                    $result .= "(". $this->rated_players[ $this->players[$i] ] . ")";
-                }
-            }
-            else {
-                $result .= "x";
-            }
+        if( $this->gather_started ) {
+            $result .= "Players: $this->game_pc/6 Map: $this->game_map ";
+            $result .= RED . "Alpha: $this->game_alpha_score " . BLACK . " - ";
+            $result .= BLUE . "Bravo: $this->game_bravo_score " . BLACK;
+        }
+        else {
 
-            if( $i != 5 )   $result .= " - ";
-            else            $result .= " |"; 
+            for( $i = 0; $i < 6; $i++ ) {
+                if( array_key_exists($i, $this->players) ) {
+                    $result .= $this->players[$i];
+                    if( array_key_exists( $this->players[$i], $this->rated_players) ) {
+                        $result .= "(". $this->rated_players[ $this->players[$i] ] . ")";
+                    }
+                }
+                else {
+                    $result .= "x";
+                }
+
+                if( $i != 5 )   $result .= " - ";
+                else            $result .= " |"; 
+            }
         }
 
         return $result;
@@ -283,6 +292,8 @@ class gather_man {
         $this->game_server->send("/gatheron");
         $result .= "Gather #$this->game_number: Default map $this->game_tiebreaker";
         $result .= ". clicker: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password\n";
+
+        $this->gather_started = true;
 
         return $result;
     }

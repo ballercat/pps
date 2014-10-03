@@ -47,47 +47,43 @@ class base_player{
     var $spot; /* ingame spot */
     var $mlt; /* mltiple kill array */
 
-    /* Buffers for all the ingame-stats */
+
+    /* 
+     * Buffers for all the ingame-stats 
+     * Stats get saved to the buffer and writen
+     * to the database after map is done.
+     *
+     * */
     public $k_buffer;
     public $d_buffer;
     public $c_buffer;
     public $g_buffer;
     public $r_buffer;
     public $mlt_buffer;
-    
     public $tnum;
     /* Timers */
     public $kill_timer;
     public $kill_count;
-
     public $team; /* This is now a referense to the team array the player is in... */
-
     public $map_timer; /* Time Played in current Map */
-
     var $flag; 
-
     public $is_rated; /* boolean; 200 kills 20 caps */
     public $active; /* WIP */
-
     public $wstreak;
     public $plus_minus;
-
     public $u_id;
-
     public $dominated;
     public $dominations;
-    
     /* Rank variables */
     public $mu = 25;
     public $sigma = 8.3;
     public $rating;
     public $old_rating;
-    
     public $act;
-
     /* Auth var for the gathers */
     public $auth;
-    
+    public $left_early = false;/* Dirty flag, for leavers */ 
+
     public function __construct( $record = null,  $name = 'Soldier'){
         /* Available database records make all other jobs a lot easier */
         $this->minutes = time();
@@ -200,7 +196,7 @@ class base_player{
     }
 	
     public function full_map( $tm ) {
-        if( ($tm - $this->map_timer) > 240 ) {
+        if( ($tm - $this->map_timer) > 10 ) {
             return true;
         } 
 

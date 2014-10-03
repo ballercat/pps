@@ -192,6 +192,8 @@ class base_stats{
             }
         }
 
+        $this->server->private_message( $id, "Stats are currently being tested" );
+
         $player->hwid = $hwid;
         $this->T->add( $name, $team, $id, $player );
         
@@ -214,30 +216,11 @@ class base_stats{
     {
         list( $cmd, $id, $team, $name ) = explode( " ", $line, 4 );
         
-        $leave_time = time();
-        $p_id = $this->T->ps[$name]->p_id;
+        $p_id = $this->T->left( $name );
 
-        foreach( $this->T->ps as $key => $plr )
+        foreach( $this->T->ps as $key => $plr ) {
 
             $this->T->ps[$key]->dominated[$p_id] = 0;
-        
-        /* Change this so that players are no longer automatically removed from 
-           the array and their stats updated. Instead, place them into a $leavers
-           array, where they remain untill the next map, or they rejoin the server(0% done) */
-        if( $this->T->ps[$name]->team->number == 5 ) {
-            
-            $this->T->remove($name);
-        }else{
-
-            if( $this->T->ps[$name]->full_map($leave_time) ) {
-
-                /* Simply dont remove players that played over 3 minutes */
-                $this->leavers[$name] = $name;
-                $this->T->left_early( $name );
-            }else{
-
-                $this->T->remove($name);
-            }
         }
 
         if( $this->T->player_count() == 0 ) {
@@ -418,7 +401,7 @@ class base_stats{
             }
             
             /* If the player played more than 5 minutes, update their stats with the buffers */
-            if( $this->T->ps[$name]->full_map( $final_time ) ) {//map_timer > 240 ){
+            if( $this->T->ps[$name]->full_map( $final_time ) ) {
 
                 if( $winner ){
 
@@ -462,41 +445,58 @@ class base_stats{
    	private function update_ratings($win_number){
 	/* ------------------------------------------------------------------------------------------------------------------------------------------------------------------- */       
         if( $win_number < 3 ){
+
             if( $win_number == 1 ){
+                
                 $win = &$this->T->alpha;
                 $loose = &$this->T->bravo;
-            }elseif( $win_number == 2){
+                $win_leavers = &$this->T->alpha_leavers;
+                $loose_leavers = &$this->T->bravo_leavers; 
+            }
+            elseif( $win_number == 2){
+
                 $win = &$this->T->bravo;
                 $loose = &$this->T->alpha;
-            }elseif( !$win_number ){
+                $win_leavers = &$this->T->bravo_leavers;
+                $loose_leavers = &$this->T->alpha_leavers;
+            }
+            elseif( !$win_number ){
+
                 return;
             }
-        }else{
+        }
+        else{
+
             return;
         }
         if( (!$win->mu || !$loose->mu) ){
+
             return null;
         }
         
         $L = array();
-        $l_sigma = $loose->sigma;
-        $l_mu = $loose->mu;
+        $l_sigma = $loose->sigma + $loose_leavers->sigma;
+        $l_mu = $loose->mu + $loose_leavers->mu;
         
         $W = array();
-        $w_sigma = $win->sigma;
-        $w_mu = $win->mu;
+        $w_sigma = $win->sigma + $win_leavers->sigma;
+        $w_mu = $win->mu + $win_leavers->mu;
         
-        $l_pc = $loose->count;
-        $w_pc = $win->count;
+        $l_pc = $loose->count + $loose_leavers->count;
+        $w_pc = $win->count + $win_leavers->count;
 
         if( $w_pc === 0 || $l_pc === 0 ) return;
 
         /* Generate temporary teams */
         foreach( $this->T->ps as $name => $player ){
+
             if( $this->T->ps[$name]->is_rated ){
+
                 if( $this->T->ps[$name]->team->number == $win->number){
+
                     $W[$name] = $this->T->ps[$name];
                 }elseif( $this->T->ps[$name]->team->number == $loose->number ){
+
                     $L[$name] = $this->T->ps[$name];
                 }
             }

@@ -222,10 +222,10 @@ function test_gather( &$pps, $ip )
 }
 
 $pps = new mock_pps();
-$pps->add_game_server( "192.210.137.129", "1337", "noodles" );
+$pps->add_game_server( "192.210.137.129", "40001", "noodles" );
 $ip = gethostbyname("irc.quakenet.org");
 $pps->add_chat_server( $ip, "6667", "HenryVIII", "#soldat.na" );
-test_gather( $pps, "192.210.137.129" );
+//test_gather( $pps, "192.210.137.129" );
 //test( $pps, $ip );
 $pps->connect();
 $pps->monitor();

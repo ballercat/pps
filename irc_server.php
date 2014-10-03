@@ -34,6 +34,8 @@ class irc_server extends ppsserver {
     public $nick;
     public $chan;
 
+    public $uptime;
+
     public $buffer;
 
     public $type = SERVER_TYPE_IRC;
@@ -60,6 +62,8 @@ class irc_server extends ppsserver {
         
         $this->gathers = array();
         $this->gc = 0;
+
+        $this->uptime = time();
     }
 
     public function test_gather( $players ) {
@@ -70,8 +74,6 @@ class irc_server extends ppsserver {
         }
 
         $tg = new gather_man( 0, $game_server );
-
-        $game_server->set_line_parser( $line_parser );
 
         $names = array( "cat", "dog", "mouse", "duck", "sheep", "wolf" );
         $i = 0;
@@ -95,7 +97,7 @@ class irc_server extends ppsserver {
             }
         }
 
-        $this->start_gather( $tg, 0, 20 );
+        $this->start_gather( $tg, 0, 60 );
     }
 
     public function get_info() 
@@ -189,11 +191,9 @@ class irc_server extends ppsserver {
         }
 
         //Check for nick changes
-        if( strpos($line, "NICK") ) {
+        if( $method == "NICK" ) {
             $ut = explode( "!", $useragent );
             $u = substr( $ut[0], 1 );
-
-            echo "Old nick:$u New nick:" . substr($channel, 1) . "\n";
 
             foreach( $this->gathers as $gather ) {
                 $result = $gather->nickchange( $u, substr($channel, 1) );
@@ -201,7 +201,24 @@ class irc_server extends ppsserver {
                     $this->send( $result, $this->chan );
                 }
             }
+
+            if( $this->current_gather ) {
+
+                $result = $this->current_gather->nickchange( $u, substr($channel, 1) );
+
+                if( $result ) {
+
+                    $this->send( $result, $this->chan );
+                }
+            }
         }
+        else if( $method == "PART" || $method == "QUIT" ) {
+            $ut = explode( "!", $useragent );
+            $u = substr( $ut[0], 1 );
+
+            $this->del( $u, null );
+        }
+
         if( strpos($line, ":!") === false ) return;
             
         //Get vals 
@@ -248,7 +265,9 @@ class irc_server extends ppsserver {
     /* Bellow are commands called from IRC */
     public function quit( $user, $line )
     {
-        $this->send( "quit called: Leaving", $this->chan );
+        $sec = time() - $this->uptime;
+
+        $this->send( "quit called: Leaving. Uptime: $sec seconds", $this->chan );
         exit(0);
     }
 
@@ -364,6 +383,28 @@ class irc_server extends ppsserver {
                 $this->current_gather = null;
                 
             }
+        }
+    }
+
+    public function status ( $user, $args = null ) {
+        
+        foreach( $this->gathers as $gather ) {
+
+            $this->send( $gather->get_info() , $this->chan ); 
+        }
+
+        if( !count($this->gathers) ) {
+
+            $this->send( "No gathers being played...", $this->chan );
+        }
+
+        if( $this->current_gather ) {
+
+            $this->send( $this->current_gather->get_info(), $this->chan );
+        }
+        else {
+
+            $this->send( "No gather pending...", $this->chan );
         }
     }
 
