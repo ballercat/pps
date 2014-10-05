@@ -196,18 +196,6 @@ class base_stats{
 
         $player->hwid = $hwid;
         $this->T->add( $name, $team, $id, $player );
-        
-        if( count( $this->leavers ) ){
-            if( array_key_exists( $name , $this->leavers ) ){
-                unset($this->leavers[$name]);
-            }elseif( $this->T->pc > 6 ){
-                foreach( $this->leavers as $key ){
-                    $this->T->remove($key);
-                    unset($this->leavers[$key]);
-                }
-                $this->leavers = array();
-            }
-        }
     }
 
 	/* ------------------------------------------------------------------------------------------------------------------- */
@@ -370,24 +358,6 @@ class base_stats{
             $this->T->ps[$key]->dominated = array_fill(0, 33, 0);
         }
         
-        /* Everything above this line is necessary after each map */     
-
-        if( false ) { 
-
-            if( count($this->leavers) ) {
-
-                foreach( $this->leavers as $key ) {
-
-                    $this->T->remove($key);
-                    unset($this->leavers[$key]);
-                }
-
-                $this->leavers = array();
-            }
-            
-            return;
-        }
-        
         $this->update_ratings($winner);
                 
         /* Update Rated Players */
@@ -421,21 +391,11 @@ class base_stats{
             $this->T->ps[$name]->clear_buffers();
         }   
 
-        //Clear leaver array 
-        if( count($this->leavers) ) {
+        //Clear leavers
+        $this->T->clear_leavers(); 
 
-            foreach( $this->leavers as $key ) {
-
-                $this->T->remove( $key );
-                unset( $this->leavers[$key] );
-            }
-
-            $this->leavers = array();
-
-            if( $this->T->player_count() == 0 ) {
-
-                $this->db->disconnect();
-            }
+        if( $this->T->player_count() == 0 ) {
+            $this->db->disconnect();
         }
 
         return $winner;

@@ -89,7 +89,6 @@ class soldat_server extends ppsserver {
     public function get_info() 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
-        echo "GET REFRESHX\n";
         $refresh = $this->get_refreshx();
         $info = "[$this->ip:$this->port] : " . $refresh['players'] . "/12  Map: ". $refresh['map'];
         return $info;

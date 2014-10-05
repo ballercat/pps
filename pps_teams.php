@@ -161,6 +161,7 @@ class teams_container{
 
     public function clear_leavers() {
 
+        //Remove leavers from main player list
         foreach( $this->alpha_leavers->p as $key ) {
 
             $this->remove( $key );
@@ -170,6 +171,7 @@ class teams_container{
             $this->remove( $key );
         } 
 
+        //Remove leavers from original teams
         $this->alpha_leavers->clear();
         $this->bravo_leavers->clear();
     }
@@ -241,10 +243,14 @@ class teams_container{
             //people avoiding a stat hit.
             if( $to === $this->spec ) {
 
-                if( $player->full_map( time() ) ) {
+                if( $player->full_map( time() ) && $this->pc > 1 ) {
 
                     $this->left_early( $name );
                 } 
+                else {
+                    $this->remove( $name );
+                    return;
+                }
             }
             
             //Remove from original team
@@ -252,6 +258,7 @@ class teams_container{
 
             $to->add( $player );
              
+            //pc and the players id remain the same
             return;
         }
  
@@ -274,6 +281,8 @@ class teams_container{
             
             $from->remove( $player );
         }
+
+        $this->pc_minus( $from->number );
 
         unset( $this->ps[$name] );
         ksort( $this->ps );
