@@ -5,6 +5,8 @@ Trait irc_commands {
    /* Bellow are commands called from IRC */
     public function quit( $user, $line )
     {
+        if( !$this->admin_access( $user ) ) return;
+        
         $sec = time() - $this->uptime;
 
         $this->send( "quit called: Leaving. Uptime: $sec seconds", $this->chan );
@@ -83,7 +85,9 @@ Trait irc_commands {
     }
 
     public function test ( $user, $args = null ) {
-        if( $args[0] && $args[0] == 'gather' ) {
+        if( !array_key_exists(0, $args) ) return; 
+
+        if( $args[0] == 'gather' ) {
             $ratings = array();
             foreach( $args as $rating ) {
                 if( !is_numeric($rating) ) continue;
@@ -91,23 +95,21 @@ Trait irc_commands {
             }
             $this->test_gather( $ratings );
         }
-        else if( $args[0] && $args[0] == 'add' ) {
-            if( $args[1] ) {
-                $this->auth = 'nooober';
-                if( $args[2] ) {
-                    $this->auth = $args[2];
-                }
+        else if( $args[0] == 'add' ) {
+            if( array_key_exists(1, $args) ) {
                 $this->add( $args[1] );
-                $this->auth = null;
             }
         }
-        else if( $args[0] && $args[0] == 'free' ) {
-            $this->send( "Freeing all servers", $this->chan );
+        else if( $args[0] == 'del' ) {
+            if( array_key_exists(1, $args) ) {
+                $this->del( $args[1] );
+            }
         }
-        else if( $args[0] && $args[0] == 'empty' ) {
+        else if( $args[0] == 'empty' ) {
             $this->send( "Freeing everything", $this->chan );
-            unset( $this->gathers );
-            $this->gathers = [];
+            foreach( $this->gathers as $gather ) {
+                $this->end_gather( $gather );
+            }
         }
 
     }

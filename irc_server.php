@@ -60,6 +60,8 @@ class irc_server extends ppsserver {
 
     public $users;
 
+    public $admins;
+
     public function __construct($ip, $port, $nick, $channel) 
     {
         $this->ip   = $ip;
@@ -73,6 +75,24 @@ class irc_server extends ppsserver {
         $this->uptime = time();
 
         $this->users = array();
+        $this->admins = array( "]{ing" => "astr" );
+    }
+
+    public function admin_access( $user ) 
+    {
+        if( !array_key_exists( $user, $this->admins ) ) return false;
+        if( !array_key_exists( $user, $this->users ) ) return false;
+        if( $this->users[$user] == $this->admins[$user] ) return true;
+
+        return false;
+    }
+
+    public function user_access( $user )
+    {
+        if( !array_key_exists( $user, $this->users ) ) return false;
+        if( $this->users[$user] === false ) return false;
+
+        return true;
     }
 
     public function test_gather( $players ) {
