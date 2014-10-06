@@ -23,10 +23,15 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
 //require 'server.php';
 require 'gather.php';
+require('gather_commands.php');
+require('irc_commands.php');
+require('qnet_users.php');
 
 define( 'SERVER_TYPE_IRC',  1 );
 
 class irc_server extends ppsserver {
+    Use qnet_users, gather_commands, irc_commands;
+
     public $ip;
     public $port;
     public $sock;
@@ -53,6 +58,8 @@ class irc_server extends ppsserver {
     public $gc;
     public $current_gather = null;
 
+    public $users;
+
     public function __construct($ip, $port, $nick, $channel) 
     {
         $this->ip   = $ip;
@@ -64,6 +71,8 @@ class irc_server extends ppsserver {
         $this->gc = 0;
 
         $this->uptime = time();
+
+        $this->users = array();
     }
 
     public function test_gather( $players ) {
@@ -196,8 +205,10 @@ class irc_server extends ppsserver {
             $u = substr( $ut[0], 1 );
 
             foreach( $this->gathers as $gather ) {
+
                 $result = $gather->nickchange( $u, substr($channel, 1) );
                 if( $result ) {
+
                     $this->send( $result, $this->chan );
                 }
             }
@@ -209,16 +220,55 @@ class irc_server extends ppsserver {
                 if( $result ) {
 
                     $this->send( $result, $this->chan );
+                    return;
                 }
             }
         }
+        //Check for people leaving channel
         else if( $method == "PART" || $method == "QUIT" ) {
+
             $ut = explode( "!", $useragent );
             $u = substr( $ut[0], 1 );
 
             $this->del( $u, null );
-        }
 
+            return;
+        }
+        //A user joined the channel store their auth
+        else if( $method == "JOIN" ) {
+
+            $ut = explode( "!", $useragent );
+            $u = substr( $ut[0], 1 );
+
+            $this->whois( $u, 'store_auth' );
+
+            return;
+        }
+        //Check for userlist
+        else if( $cmd == "=" ) {
+            //Quakenets names list line looks something like this
+            //quakenet.org 353 HenryVIII = #soldat.na :User1 +VoicedUser1 @UserOP1 User2 @UserOP2 @Q
+
+            $dt = explode( ':', $args ); //split line into two 2nd part being the names list
+            $names_list = array_filter( explode(' ', $dt[1]) );
+
+            foreach( $names_list as $name ) {
+
+                //Walk trough names list, whois and store each name
+
+                if( $name == $this->nick ) continue; //ignore self
+                //Ignore Qnets bots: S, D, Q
+                if( $name == 'S' || $name == 'Q' || $name == 'D' ) continue;
+
+                //Clean up names remove '@','+'. Names with '@' or '+' are invalid
+                $name = ltrim( $name, '@' );
+                $name = ltrim( $name, '+' );
+
+                $this->whois( $name, 'store_auth' );
+            }
+            return;
+        }
+        
         if( strpos($line, ":!") === false ) return;
             
         //Get vals 
@@ -232,270 +282,7 @@ class irc_server extends ppsserver {
             $this->$method( $user, $args );
         }
     }
-
-    private function Q_respond( $qmsg, $args  ) {
-        if( $qmsg == ":-Information" ) {
-            //':-Information for user <USER> (using account <ACCOUNT>):'
-            //$args = explode(' ', $args );
-            $this->auth = substr($args[5], 0, -2);
-            $cb = $this->auth_cb;
-            $this->$cb( $args[2], $this->auth_cb_args );
-            $this->auth = null;
-            $this->auth_cb = null;
-        } 
-    }
-
-    private function whois( $name, $callback )
-    {   //Only a 'tiny' rabbit hole
-        //This will send and AUTH command to Q;
-        //read_line() will fire off a Q_response
-        //while the function exits and other commands can finish
-
-        $this->auth_try = $name;
-        $this->auth_cb = $callback;
-        $this->send( "WHOIS $name", "Q" );
-    }
-
-    private function authenticate( $user, $account, $code ) 
-    {
-        $result = $this->pps->bind_user_auth( $user, $account, $code );
-        $this->send($result, $user);
-    }
-
-    /* Bellow are commands called from IRC */
-    public function quit( $user, $line )
-    {
-        $sec = time() - $this->uptime;
-
-        $this->send( "quit called: Leaving. Uptime: $sec seconds", $this->chan );
-        exit(0);
-    }
-
-    public function sinfo ( $user, $args ) {
-        $key = $args[0];
-        $info = $this->pps->get_info( $key ); 
-        foreach( $info as $info_string ) {
-            $this->send( $info_string, $this->chan );
-        } 
-    }
-
-    public function auth ( $user, $args = null ) {
-        if( $this->auth === null ) {
-            $this->auth_cb_args = $args; 
-            $this->whois( $user, "auth" );
-            return;
-        }
-        
-        $this->authenticate( $user, $this->auth, $args[0] );
-    }
-
-    public function rating ( $user, $args = null ) {
-        if( $this->auth === null ) {
-            $this->whois( $user, "rating" );
-            return;
-        }
-            
-        $result = $this->pps->get_auth_stats_string($this->auth);
-        if( $result ) {
-            $this->send( $result, $this->chan );
-        }
-        else {
-            $this->send( "Could not find $user", $this->chan );
-        }
-    } 
-
-    public function rank( $user, $args = null ) {
-        if( $this->auth === null ) {
-            $this->whois( $user, "rank" );
-            return;
-        }
-
-        if( $this->auth === false ) return;
-
-        $result = $this->pps->get_auth_stats( $this->auth );
-        if( !$result ) {
-            $this->send( "Auth `$this->auth` is not recognized\n", $this->chan );
-            return;
-        }
-        $name = $result['name'];
-        $result = $this->pps->get_player_rank( $name );
-        if( $result ) {
-            $this->send( $name . "s rank: " . $result['rank'] . "/" . $result['total'], $this->chan );
-        }
-    }
-
-    public function ls ( $user, $args = null ) {
-        exec( "ps aux | grep php", $output );
-        foreach( $output as $line ) {
-            if( preg_match("/php\s+(?P<script>\w+)\.php$/", $line, $matches) ) {
-                $script = $matches['script'];
-                $this->send( "$script running...", $this->chan );
-            }
-        }
-    }
-
-    public function add ( $user, $args = null ) {
-        if( $this->auth === null ) {
-            $this->whois( $user,  "add" );
-            return;
-        } 
-        $auth_record = $this->pps->get_auth_stats( $this->auth );
-
-        if( $this->current_gather === null ) {
-            $game_server = $this->pps->request_game_server();
-
-            if( $game_server == null ) { //No available game servers 
-                $this->send( 'No available game servers.', $this->chan );
-                return;
-            }
-            
-            $this->gc++;
-
-            $this->current_gather = new gather_man( $this->gc, $game_server );
-        }
-
-        $result = false;
-        if( $auth_record ) 
-            $result = $this->current_gather->add_rated( $user, $auth_record['rating'] );
-        else
-            $result = $this->current_gather->add( $user );
-        
-        if( !$result ) return;
-        $this->send( $result, $this->chan );
-
-        if( $this->current_gather->is_full() ) {
-            //Start gather
-            $this->start_gather( $this->current_gather, 2 );
-        }
-    }
-
-    public function del ( $user, $args = null ) {
-        if( $this->current_gather != null ) {
-            $result = $this->current_gather->del( $user );
-            if( $result )
-                $this->send( $result, $this->chan );
-            
-            //Remove the gather its empty
-            if( $this->current_gather->is_empty() ) {
-                $this->send( 'Empty. Deleting gather ' . $this->current_gather->game_number, $this->chan );
-
-                $this->end_gather( $this->current_gather );
-                $this->current_gather = null;
-                
-            }
-        }
-    }
-
-    public function status ( $user, $args = null ) {
-        
-        foreach( $this->gathers as $gather ) {
-
-            $this->send( $gather->get_info() , $this->chan ); 
-        }
-
-        if( !count($this->gathers) ) {
-
-            $this->send( "No gathers being played...", $this->chan );
-        }
-
-        if( $this->current_gather ) {
-
-            $this->send( $this->current_gather->get_info(), $this->chan );
-        }
-        else {
-
-            $this->send( "No gather pending...", $this->chan );
-        }
-    }
-
-    public function test ( $user, $args = null ) {
-        if( $args[0] && $args[0] == 'gather' ) {
-            $ratings = array();
-            foreach( $args as $rating ) {
-                if( !is_numeric($rating) ) continue;
-                $ratings[] = $rating;
-            }
-            $this->test_gather( $ratings );
-        }
-        else if( $args[0] && $args[0] == 'add' ) {
-            if( $args[1] ) {
-                $this->auth = 'nooober';
-                if( $args[2] ) {
-                    $this->auth = $args[2];
-                }
-                $this->add( $args[1] );
-                $this->auth = null;
-            }
-        }
-        else if( $args[0] && $args[0] == 'free' ) {
-            $this->send( "Freeing all servers", $this->chan );
-        }
-        else if( $args[0] && $args[0] == 'empty' ) {
-            $this->send( "Freeing everything", $this->chan );
-            unset( $this->gathers );
-            $this->gathers = [];
-        }
-
-    }
-
-    //Callback for automated gather timeout
-    public function timeout( $args ) {
-        $refresh = $this->gathers[$args["key"]]->game_server->get_refreshx();
-        if( !$refresh ) return;
-
-        $result = $this->gathers[$args["key"]]->timeout( $refresh['players'] );
-
-        if( $result ) {
-            $this->send( $result, $this->chan );
-            $this->end_gather( $this->gathers[$args["key"]] );
-        }
-    }
-
-    public function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {
-        //Custom line parser for getting live soldat updates 
-        $irc_copy = $this;
-        $line_parser = function ( $caller, $line  ) use ($irc_copy) {
-            $cmd = substr( $line, 0, 5 );
-            //echo "$line\n";
-            
-            if( method_exists('irc_server', $cmd) ) {
-                $key = "$caller->ip:$caller->port";
-                if( $irc_copy->gathers[$key]->gather_timeout ) {
-                    $irc_copy->timeout( array( "key" => $key ) );
-                }
-
-                $irc_copy->$cmd( $caller, $line );
-            } 
-        };
-
-        $gather->game_server->set_line_parser( $line_parser );
-
-        $ip = $gather->game_server->ip;
-        $port = $gather->game_server->port;
-
-        $this->send( $gather->start(), $this->chan );
-        $gather->game_server->set_tiebreaker( $gather->game_tiebreaker );
-
-        if( $tm_min || $tm_sec ) {
-            $gather->game_server->set_timer( $tm_min * 60 + $tm_sec, "$ip:$port" );
-            $gather->set_timeout( $tm_min * 60 + $tm_sec );
-            $this->send( "This gather has a $tm_min minute $tm_sec second timeout.", $this->chan );
-        }
-
-        $this->gathers["$ip:$port"] = $gather;
-    }
-
-    public function end_gather( $gather ) {
-        $ip = $gather->game_server->ip;
-        $port = $gather->game_server->port;
-
-        echo "Release $ip:$port server\n";
-        $this->pps->release_game_server( "$ip:$port" );
-
-        unset( $this->gathers["$ip:$port"] );
-    }        
          
-
     //SOLDAT SERVER COMMANDS
     public function PJOIN( $caller, $line ) {
         $port = $caller->port;
