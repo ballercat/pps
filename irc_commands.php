@@ -58,7 +58,7 @@ Trait irc_commands {
         
         $result = $this->pps->get_auth_stats( $this->users[$user] );
         if( !$result ) {
-            $this->send( "Auth `$this->auth` is not recognized\n", $this->chan );
+            $this->send( "Auth `" . $this->users[$user] . "` is not recognized\n", $this->chan );
             return;
         }
         $name = $result['name'];
