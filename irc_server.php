@@ -25,12 +25,13 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 require 'gather.php';
 require('gather_commands.php');
 require('irc_commands.php');
+require('irc_server_test.php');
 require('qnet_users.php');
 
 define( 'SERVER_TYPE_IRC',  1 );
 
 class irc_server extends ppsserver {
-    Use qnet_users, gather_commands, irc_commands;
+    Use qnet_users, gather_commands, irc_commands, irc_server_test;
 
     public $ip;
     public $port;
@@ -98,39 +99,7 @@ class irc_server extends ppsserver {
         return true;
     }
 
-    public function test_gather( $players ) {
-        $game_server = $this->pps->request_game_server();
-        if( !$game_server ) {
-            $this->send( "No available game servers.", $this->chan );
-            return;
-        }
 
-        $tg = new gather_man( 0, $game_server );
-
-        $names = array( "cat", "dog", "mouse", "duck", "sheep", "wolf" );
-        $i = 0;
-        foreach( $players as  $rating ) {
-            $result = false;
-            $name = $names[$i];
-            if( $rating ) {
-                $result = $tg->add_rated( $name, $rating );
-            }
-            else {
-                $result = $tg->add( $name );
-            }
-
-            $this->send( $result, $this->chan );
-            $i++;
-        }
-        if( $i < 5 ) {
-            for( $i ; $i < 6; $i++ ) {
-                $result = $tg->add( $names[$i] );
-                $this->send( $result, $this->chan );
-            }
-        }
-
-        $this->start_gather( $tg, 0, 60 );
-    }
 
     public function get_info() 
     {

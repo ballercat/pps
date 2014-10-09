@@ -114,6 +114,8 @@ Trait gather_commands{
             if( method_exists('irc_server', $cmd) ) {
 
                 $key = "$caller->ip:$caller->port";
+                if( !array_key_exists($key, $irc_copy->gathers) ) return;
+
                 if( $irc_copy->gathers[$key]->gather_timeout ) {
 
                     $irc_copy->timeout( array( "key" => $key ) );

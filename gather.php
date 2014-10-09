@@ -32,8 +32,12 @@ define( 'CYAN', "\x0311" );
 define( 'LBLUE', "\x0312" );
 define( 'ORANGE', "\x037" );
 define( 'GREY', "\x0314" );
+define( 'LGREY', "\x0315" );
 define( 'PURPLE', "\x036" );
+
 define( 'BOLD' , "\x02" );
+define( 'UNDERLINE', "\x1F" );
+define( 'NORMAL' , "\x0F" );
 
 define( 'MCOLOR', ORANGE );
 
@@ -138,7 +142,7 @@ class gather_man {
     }
 
     public function get_info() {
-        $result = MCOLOR . "Gather #$this->game_number ~ ";
+        $result =  MCOLOR . BOLD . "Gather #$this->game_number " . BOLD . "~ ";
 
         if( $this->gather_started ) {
             $result .= "Players: $this->game_pc/6 Map: $this->game_map ";
@@ -174,7 +178,7 @@ class gather_man {
                 }
 
                 if( $i != 5 )   $result .= " - ";
-                else            $result .= " ~"; 
+                else            $result .= " ~" ; 
             }
         }
 
@@ -316,8 +320,10 @@ class gather_man {
         $this->game_password = sprintf( "%03d", mt_rand(1, 999) );
         $this->game_server->send("/password $this->game_password");
         $this->game_server->send("/gatheron");
-        $result .= MCOLOR ." ~ Gather #$this->game_number: Tiebreaker: $this->game_tiebreaker";
-        $result .= ". server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password\n";
+        $result .= BOLD;
+        $result .= MCOLOR ." ~ Gather #$this->game_number: " . BOLD . " Tiebreaker is $this->game_tiebreaker ";
+        $result .= ":: " . UNDERLINE . "server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password";
+        $result .= NORMAL . "\n";
 
         $this->gather_started = true;
 
@@ -355,19 +361,19 @@ class gather_man {
             $this->player_rank[$name] = PURPLE . "S";
         }
         else if( $prank/$total < 0.1001 ) {
-            $this->player_rank[$name] = GREEN . "A";
+            $this->player_rank[$name] = RED . "A";
         }
         else if( $prank/$total < 0.2001 ) {
-            $this->player_rank[$name] = BLUE . "B";
+            $this->player_rank[$name] = BROWN . "B";
         }
         else if( $prank/$total < 0.3001 ) {
-            $this->player_rank[$name] = LBLUE . "C";
+            $this->player_rank[$name] = GREEN . "C";
         }
         else if( $prank/$total < 0.4001 ) {
             $this->player_rank[$name] = BROWN . "D";
         }
         else if( $prank/$total > 0.3999 ) {
-            $this->player_rank[$name] = RED . "F";
+            $this->player_rank[$name] = BLACK . "F";
         }
 
         return $this->add( $name ); 
@@ -379,7 +385,7 @@ class gather_man {
         if( $this->is_added( $name ) ) return null;
 
         if( !array_key_exists( $name, $this->player_rank ) )
-            $this->player_rank[$name] = BOLD . "E";
+            $this->player_rank[$name] = LGREY . "E";
 
         $this->players[] = $name;
         $this->pc++;

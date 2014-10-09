@@ -108,12 +108,13 @@ Trait irc_commands {
             }
         }
         else if( $args[0] == 'del_all' ) {
-
+            $this->speak( "Delete all" );
         }
         else if( $args[0] == 'empty' ) {
-            $this->send( "Freeing everything", $this->chan );
-            foreach( $this->gathers as $gather ) {
-                $this->end_gather( $gather );
+            $this->speak( "Freeing everything" );
+            while( list($key, $gather) = each($this->gathers) ) {
+                $this->speak( "End gather #" . $gather->game_number );
+                $this->end_gather( $gather ); 
             }
         }
 
