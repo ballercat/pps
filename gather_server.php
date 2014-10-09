@@ -71,7 +71,6 @@ class gather_server extends ppsserver {
 
         $logstr = $this->m_adminlog . "\r\n";
         socket_write( $this->sock, $logstr );
-        $this->State = CONNECTED;
         $this->connected = true;
     }
     

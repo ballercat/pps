@@ -22,13 +22,13 @@ Trait irc_commands {
     }
 
     public function auth ( $user, $args = null ) {
-        if( !array_key_exists($user, $this->users) || !$this->users[$user] ) {
+        if( !$this->user_access($user) ) {
 
             $this->send( "No auth stored for user $user", $this->chan );
             return;
         }
 
-        $this->authenticate( $user, $this->auth, $args[0] );
+        $this->authenticate( $user, $this->users[$user], $args[0] );
     }
 
     public function rating ( $user, $args = null ) {
@@ -50,17 +50,19 @@ Trait irc_commands {
     } 
 
     public function rank( $user, $args = null ) {
-        if( !array_key_exists($user, $this->users) || !$this->users[$user] ) {
+        if( !$this->user_access($user) ) {
 
             $this->send( "No auth stored for user $user", $this->chan );
             return;
         }
         
         $result = $this->pps->get_auth_stats( $this->users[$user] );
+
         if( !$result ) {
             $this->send( "Auth `" . $this->users[$user] . "` is not recognized\n", $this->chan );
             return;
         }
+
         $name = $result['name'];
         $result = $this->pps->get_player_rank( $name );
         if( $result ) {

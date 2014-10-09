@@ -34,11 +34,14 @@ Trait gather_commands{
         }
 
         $result = false;
-        if( $auth_record ) 
+        if( $auth_record ) {
             $result = $this->current_gather->add_rated( $user, $auth_record['rating'] );
-        else
+        }
+        else {
+
             $result = $this->current_gather->add( $user );
-        
+        }
+
         if( !$result ) return;
 
         $this->send( $result, $this->chan );

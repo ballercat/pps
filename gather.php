@@ -27,7 +27,12 @@ define( 'BLACK', "\x031" );
 define( 'RED',  "\x034" );
 define( 'BLUE' , "\x032" );
 define( 'GREEN' , "\x033" );
+define( 'CYAN', "\x0311" );
+define( 'LBLUE', "\x0312" );
+define( 'ORANGE', "\x037" );
 define( 'BOLD' , "\x02" );
+
+define( 'MCOLOR', ORANGE );
 
 class gather_man {
     public $pc;
@@ -128,20 +133,40 @@ class gather_man {
     }
 
     public function get_info() {
-        $result = "Gather ($this->game_number) | ";
+        $result = MCOLOR . "Gather ($this->game_number) | ";
 
         if( $this->gather_started ) {
             $result .= "Players: $this->game_pc/6 Map: $this->game_map ";
-            $result .= RED . "Alpha: $this->game_alpha_score " . BLACK . " - ";
-            $result .= BLUE . "Bravo: $this->game_bravo_score " . BLACK;
+            $result .= RED . "Alpha: $this->game_alpha_score " . MCOLOR . " - ";
+            $result .= BLUE . "Bravo: $this->game_bravo_score " . MCOLOR;
         }
         else {
 
             for( $i = 0; $i < 6; $i++ ) {
                 if( array_key_exists($i, $this->players) ) {
-                    $result .= $this->players[$i];
+
+                    //Check if the player is rated. Add fancy colors
                     if( array_key_exists( $this->players[$i], $this->rated_players) ) {
-                        $result .= "(". $this->rated_players[ $this->players[$i] ] . ")";
+                        
+                        $result .= CYAN;
+                        $result .= $this->players[$i];
+
+                        if( $this->rated_players[$this->players[$i]] > 0 ) {
+
+                            $result .= GREEN;
+                        } 
+                        else {
+
+                            $result .= RED;
+                        }
+
+                        $result .= "[";
+                        $result .= $this->rated_players[ $this->players[$i] ];
+                        $result .= "]" . MCOLOR;
+                    }
+                    else {
+                        //Not rated/Not found in db 
+                        $result .= $this->players[$i];
                     }
                 }
                 else {
@@ -262,6 +287,7 @@ class gather_man {
             foreach( $rated as $name => $rating ) {
                 //Make the picks
                 $team = $this->rating_balanced_pick( $alpha, $bravo, $rating );
+                echo "Pick $name $team\n";
                 $this->pick_player_name( $team, $name );
             }
         } else {

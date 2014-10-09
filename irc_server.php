@@ -57,6 +57,8 @@ class irc_server extends ppsserver {
     public $gathers;
     public $gc;
     public $current_gather = null;
+    
+    public $init = false;
 
     public $users;
 
@@ -188,7 +190,7 @@ class irc_server extends ppsserver {
 
     public function parse_line( $line )
     {   if( !strlen($line) ) return;
-        echo "$line\n";      
+        //echo "$line\n";      
         if( $this->connected && !$this->hooked ) {
             if( $line == "ERROR :Your host is trying to (re)connect too fast -- throttled" ) return;
             if( strpos($line, "End of /MOTD command.") !== false || strpos($line, "MOTD File is missing") ) {
@@ -223,10 +225,16 @@ class irc_server extends ppsserver {
         if( $method == "NICK" ) {
             $ut = explode( "!", $useragent );
             $u = substr( $ut[0], 1 );
+            $n_nick = substr($channel, 1);
 
+            if( array_key_exists($u, $this->users) ) {
+                $this->users[$n_nick] = $this->users[$u];
+                unset( $this->users[$u] );
+            }
+            
             foreach( $this->gathers as $gather ) {
 
-                $result = $gather->nickchange( $u, substr($channel, 1) );
+                $result = $gather->nickchange( $u, $n_nick );
                 if( $result ) {
 
                     $this->send( $result, $this->chan );
@@ -235,7 +243,7 @@ class irc_server extends ppsserver {
 
             if( $this->current_gather ) {
 
-                $result = $this->current_gather->nickchange( $u, substr($channel, 1) );
+                $result = $this->current_gather->nickchange( $u, $n_nick );
 
                 if( $result ) {
 
@@ -272,23 +280,28 @@ class irc_server extends ppsserver {
             $dt = explode( ':', $args ); //split line into two 2nd part being the names list
             $names_list = array_filter( explode(' ', $dt[1]) );
 
+            $this->init = 0;
+            $this->send( "Connected. Initializing...", $this->chan );
+
             foreach( $names_list as $name ) {
 
                 //Walk trough names list, whois and store each name
-
-                if( $name == $this->nick ) continue; //ignore self
-                //Ignore Qnets bots: S, D, Q
-                if( $name == 'S' || $name == 'Q' || $name == 'D' ) continue;
 
                 //Clean up names remove '@','+'. Names with '@' or '+' are invalid
                 $name = ltrim( $name, '@' );
                 $name = ltrim( $name, '+' );
 
+                if( $name === $this->nick ) continue; //ignore self
+                //Ignore Qnets bots: S, D, Q
+                if( $name == 'S' || $name == 'Q' || $name == 'D' ) continue;
+
+                $this->init++;
                 $this->whois( $name, 'store_auth' );
             }
             return;
         }
-        
+
+        if( $this->init ) return; 
         if( strpos($line, ":!") === false ) return;
             
         //Get vals 
