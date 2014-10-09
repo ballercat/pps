@@ -107,6 +107,9 @@ Trait irc_commands {
                 $this->del( $args[1] );
             }
         }
+        else if( $args[0] == 'del_all' ) {
+
+        }
         else if( $args[0] == 'empty' ) {
             $this->send( "Freeing everything", $this->chan );
             foreach( $this->gathers as $gather ) {

@@ -53,6 +53,7 @@ class irc_server extends ppsserver {
     public $auth_cb;
     public $auth = null;
     public $auth_cb_args = null;
+    public $auth_array = null;
 
     public $gathers;
     public $gc;
@@ -155,6 +156,11 @@ class irc_server extends ppsserver {
         }
     }
 
+    public function speak( $data ) 
+    {
+        $this->send( MCOLOR ." ~ ". $data , $this->chan );
+    }
+
     public function readbuffer( $size = 512 ) 
     {   if( !$this->sock ) return ($this->buffer = null);
         $this->buffer = trim( socket_read($this->sock, 512, PHP_BINARY_READ) );
@@ -217,7 +223,7 @@ class irc_server extends ppsserver {
 
 
         if( substr($line, 0, 3) === ":Q!" ) {
-            $this->Q_respond( $cmd, explode(' ', $args) );
+            $this->Q_respond( $cmd, $args );
             return;
         }
 
@@ -267,8 +273,15 @@ class irc_server extends ppsserver {
 
             $ut = explode( "!", $useragent );
             $u = substr( $ut[0], 1 );
+            if( $u != $this->nick ) {
 
-            $this->whois( $u, 'store_auth' );
+                $this->auth_array[] = $u;
+                if( !$this->init ) //Init has finished
+                {
+                    if( !count($this->auth_array) ) 
+                        $this->store_auth( null, null );
+                }
+            }
 
             return;
         }
@@ -278,26 +291,26 @@ class irc_server extends ppsserver {
             //quakenet.org 353 HenryVIII = #soldat.na :User1 +VoicedUser1 @UserOP1 User2 @UserOP2 @Q
 
             $dt = explode( ':', $args ); //split line into two 2nd part being the names list
-            $names_list = array_filter( explode(' ', $dt[1]) );
 
-            $this->init = 0;
+            $users  = array_filter( explode(' ', $dt[1]) );
+
+            //$this->init = 0;
             $this->send( "Connected. Initializing...", $this->chan );
 
-            foreach( $names_list as $name ) {
+            foreach( $users as $key => $user ) {
 
-                //Walk trough names list, whois and store each name
+                $user = ltrim( $user, '@' );
+                $user = ltrim( $user, '+' );
 
-                //Clean up names remove '@','+'. Names with '@' or '+' are invalid
-                $name = ltrim( $name, '@' );
-                $name = ltrim( $name, '+' );
+                if( $user == $this->nick ) continue;
+                if( $user == 'Q' || $user == 'S' || $user == 'D' ) continue;
 
-                if( $name === $this->nick ) continue; //ignore self
-                //Ignore Qnets bots: S, D, Q
-                if( $name == 'S' || $name == 'Q' || $name == 'D' ) continue;
-
-                $this->init++;
-                $this->whois( $name, 'store_auth' );
+                $this->auth_array[] = $user;
             }
+
+            $this->init = true;
+            $this->store_auth( null, null );
+        
             return;
         }
 

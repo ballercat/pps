@@ -24,12 +24,15 @@ require './pps_player.php';
 require './pps_teams.php';
 
 define( 'BLACK', "\x031" );
+define( 'BROWN', "\x035" );
 define( 'RED',  "\x034" );
 define( 'BLUE' , "\x032" );
 define( 'GREEN' , "\x033" );
 define( 'CYAN', "\x0311" );
 define( 'LBLUE', "\x0312" );
 define( 'ORANGE', "\x037" );
+define( 'GREY', "\x0314" );
+define( 'PURPLE', "\x036" );
 define( 'BOLD' , "\x02" );
 
 define( 'MCOLOR', ORANGE );
@@ -54,6 +57,7 @@ class gather_man {
     public $top_rating = 0;
     public $rating_player_average = 0;
     public $rating_team_average = 0;
+    public $player_rank;
 
     //Game data
     public $game_map = "";
@@ -70,6 +74,7 @@ class gather_man {
         $this->game_number = $p_game_number;
         $this->pc = 0;
         $this->rated_players = array();
+        $this->player_rank = array();
         $this->players = array();
         $this->alpha = new team( 1 );
         $this->bravo = new team( 2 );
@@ -133,7 +138,7 @@ class gather_man {
     }
 
     public function get_info() {
-        $result = MCOLOR . "Gather ($this->game_number) | ";
+        $result = MCOLOR . "Gather #$this->game_number ~ ";
 
         if( $this->gather_started ) {
             $result .= "Players: $this->game_pc/6 Map: $this->game_map ";
@@ -151,22 +156,17 @@ class gather_man {
                         $result .= CYAN;
                         $result .= $this->players[$i];
 
-                        if( $this->rated_players[$this->players[$i]] > 0 ) {
-
-                            $result .= GREEN;
-                        } 
-                        else {
-
-                            $result .= RED;
-                        }
-
-                        $result .= "[";
-                        $result .= $this->rated_players[ $this->players[$i] ];
-                        $result .= "]" . MCOLOR;
+                        $result .= BOLD ."[";
+                        $result .= $this->player_rank[ $this->players[$i] ];
+                        $result .= CYAN . "]" . BOLD;
+                        $result .= MCOLOR;
                     }
                     else {
                         //Not rated/Not found in db 
                         $result .= $this->players[$i];
+                        $result .= BOLD . "[";
+                        $result .= $this->player_rank[ $this->players[$i] ];
+                        $result .= MCOLOR . "]" . BOLD;
                     }
                 }
                 else {
@@ -174,7 +174,7 @@ class gather_man {
                 }
 
                 if( $i != 5 )   $result .= " - ";
-                else            $result .= " |"; 
+                else            $result .= " ~"; 
             }
         }
 
@@ -311,13 +311,13 @@ class gather_man {
         foreach( $this->bravo->p as $p ) {
             $result .= " " . $p;
         }
-        $result .= BLACK . "\n";
+        $result .= "\n";
         //Generate password
         $this->game_password = sprintf( "%03d", mt_rand(1, 999) );
         $this->game_server->send("/password $this->game_password");
         $this->game_server->send("/gatheron");
-        $result .= "Gather #$this->game_number: Default map $this->game_tiebreaker";
-        $result .= ". clicker: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password\n";
+        $result .= MCOLOR ." ~ Gather #$this->game_number: Tiebreaker: $this->game_tiebreaker";
+        $result .= ". server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password\n";
 
         $this->gather_started = true;
 
@@ -325,7 +325,7 @@ class gather_man {
     }
 
     //Extra step is done here to update rating values BEFORE the actual add
-    public function add_rated( $name, $rating )
+    public function add_rated( $name, $rating, $rank )
     {
         //This makes the check in 'add' redundant but its still necessary
         if( $this->pc != 6 && !$this->is_added( $name ) ) {
@@ -342,6 +342,34 @@ class gather_man {
             $this->rated_player_count++;
         }
 
+        //Get the players rank and morph it into a Letter:
+        //'S' == top 5
+        //'A' == top 10%
+        //'B' == 80-89%
+        //'C' == 70-79%
+        //'D' == 60-69%
+        //'F' == < 60%
+        $total = $rank['total'];
+        $prank = $rank['rank'];
+        if( $prank < 6 ) {
+            $this->player_rank[$name] = PURPLE . "S";
+        }
+        else if( $prank/$total < 0.1001 ) {
+            $this->player_rank[$name] = GREEN . "A";
+        }
+        else if( $prank/$total < 0.2001 ) {
+            $this->player_rank[$name] = BLUE . "B";
+        }
+        else if( $prank/$total < 0.3001 ) {
+            $this->player_rank[$name] = LBLUE . "C";
+        }
+        else if( $prank/$total < 0.4001 ) {
+            $this->player_rank[$name] = BROWN . "D";
+        }
+        else if( $prank/$total > 0.3999 ) {
+            $this->player_rank[$name] = RED . "F";
+        }
+
         return $this->add( $name ); 
     }
 
@@ -349,6 +377,9 @@ class gather_man {
     { 
         if( $this->pc == 6 ) return "Gather full"; 
         if( $this->is_added( $name ) ) return null;
+
+        if( !array_key_exists( $name, $this->player_rank ) )
+            $this->player_rank[$name] = BOLD . "E";
 
         $this->players[] = $name;
         $this->pc++;

@@ -4,15 +4,9 @@ Trait gather_commands{
     
     function add ( $user, $args = null ) {
 
-        /*if( $this->auth === null ) {
+        if( !$this->user_access( $user ) ) {
 
-            $this->whois( $user,  "add" );
-            return;
-        }*/
-
-        if( !array_key_exists($user, $this->users) ) {
-
-            $this->send( "No auth stored for user $user", $this->chan );
+            $this->speak( "$user is not authed. Only authed users can add..." );
             return;
         }
 
@@ -35,7 +29,8 @@ Trait gather_commands{
 
         $result = false;
         if( $auth_record ) {
-            $result = $this->current_gather->add_rated( $user, $auth_record['rating'] );
+            $rank = $this->pps->get_player_rank( null, $auth_record['user_id'] );
+            $result = $this->current_gather->add_rated( $user, $auth_record['rating'], $rank );
         }
         else {
 
@@ -65,7 +60,7 @@ Trait gather_commands{
             //Remove the gather its empty
             if( $this->current_gather->is_empty() ) {
 
-                $this->send( 'Empty. Deleting gather ' . $this->current_gather->game_number, $this->chan );
+                $this->speak( 'Empty. Deleting gather ' . $this->current_gather->game_number );
 
                 $this->end_gather( $this->current_gather );
                 $this->current_gather = null;
@@ -112,13 +107,15 @@ Trait gather_commands{
     function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {
         //Custom line parser for getting live soldat updates 
         $irc_copy = $this;
+
         $line_parser = function ( $caller, $line  ) use ($irc_copy) {
             $cmd = substr( $line, 0, 5 );
-            //echo "$line\n";
             
             if( method_exists('irc_server', $cmd) ) {
+
                 $key = "$caller->ip:$caller->port";
                 if( $irc_copy->gathers[$key]->gather_timeout ) {
+
                     $irc_copy->timeout( array( "key" => $key ) );
                 }
 
@@ -137,7 +134,6 @@ Trait gather_commands{
         if( $tm_min || $tm_sec ) {
             $gather->game_server->set_timer( $tm_min * 60 + $tm_sec, "$ip:$port" );
             $gather->set_timeout( $tm_min * 60 + $tm_sec );
-            $this->send( "This gather has a $tm_min minute $tm_sec second timeout.", $this->chan );
         }
 
         $this->gathers["$ip:$port"] = $gather;
@@ -147,7 +143,6 @@ Trait gather_commands{
         $ip = $gather->game_server->ip;
         $port = $gather->game_server->port;
 
-        echo "Release $ip:$port server\n";
         $this->pps->release_game_server( "$ip:$port" );
 
         unset( $this->gathers["$ip:$port"] );

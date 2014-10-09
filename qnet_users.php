@@ -2,21 +2,22 @@
 
 Trait qnet_users 
 {
-    function Q_respond( $qmsg, $args  ) {
+    function Q_respond( $qmsg, $args ) {
+        $args = array_filter(explode(' ', $args));
+        
         if( $qmsg == ":-Information" ) {
             //':-Information for user <USER> (using account <ACCOUNT>):'
-            //$args = explode(' ', $args );
-
-            //echo $this->buffer;
-
-            if( !array_key_exists(5, $args) ) {
-                echo $this->buffer . "\n";
-                return;
-            }
-            $this->auth = substr($args[5], 0, -2);
+             
+            $auth = substr($args[5], 0, -2);
+            $user = $args[2];
             $cb = $this->auth_cb;
-            $this->$cb( $args[2], $this->auth );//$this->auth_cb_args );
+            $this->$cb( $user, $auth );
         } 
+        else if( $qmsg == ":User" && count($args) == 4 && $args[3] == "authed." ) {
+            $user = $args[0];
+            $cb = $this->auth_cb; 
+            $this->$cb( $user, null );
+        }
     }
 
     function whois( $name, $callback )
@@ -32,12 +33,21 @@ Trait qnet_users
 
     function store_auth( $user, $auth )
     {
-        echo "AUTH: $user\n";
-        $this->users[$user] = $auth;
-        $this->init--;
-        if( $this->init === 0 ) {
-            $this->init = false;
+        if( $user ) {
+            echo "AUTH: $user = $auth\n";
+            $this->users[$user] = $auth;
+        }
+
+        if( count($this->auth_array) ) {
+
+            $name = array_pop( $this->auth_array );
+            $this->whois( $name, 'store_auth' );
+
+        }
+
+        if( !count($this->auth_array) && $this->init ) {
             $this->send( "Done", $this->chan );
+            $this->init = false;
         }
     }
 }
