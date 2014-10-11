@@ -133,7 +133,7 @@ class mock_pps {
 
 
         //IRC message string
-        return "$name rating: $rating KD: $kd CG: $CG +/-:$pm played(minutes):$played";
+        return "$name rating: $rating KD: $KD CG: $CG +/-:$pm played(minutes):$played";
     }
 
     public function get_auth_stats( $auth ) {
