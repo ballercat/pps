@@ -9,7 +9,10 @@ Trait irc_commands {
         
         $sec = time() - $this->uptime;
 
-        $this->send( "quit called: Leaving. Uptime: $sec seconds", $this->chan );
+        $tm = ( $sec > 59 ) ? round($sec/60, 2) . "min" : $sec . "sec";
+
+        $this->speak( "Quit called: Leaving. Uptime: $tm" );
+
         exit(0);
     }
 
@@ -39,20 +42,50 @@ Trait irc_commands {
             return;
         }          
 
-        $result = $this->pps->get_auth_stats_string( $this->users[$user] );
+        $result = $this->pps->get_auth_stats( $this->users[$user] );
 
         if( $result ) {
-            $this->send( $result, $this->chan );
+
+            $rank = $this->pps->get_player_rank( null, $result['user_id'] );
+            
+            $tp = $result['time_played'];
+            
+            $info = $result['name'];
+            $info .= $this->rank2string( $rank['rank'], $rank['total'] ) . MCOLOR;
+            $info .= " ~ KD : " . $result['kd'] . " ~ CG: " . $result['cg'];
+
+            $maps = ( $result['maps'] > 0 ) ? $result['maps'] : 1;
+            $info .= " ~ WIN% : " . intval($result['wins']/($maps/100)) . " ~";
+
+            if( $tp > 59 ) {
+                $info .= " Played : " . round($tp/60, 2) . "h";
+            }
+            else {
+                $info .= " Played : $tp" . "min";
+            }
+
+            $this->speak( $info );
         }
         else {
-            $this->send( "Could not find $user", $this->chan );
+            $this->speak( "Could not find $user", $this->chan );
         }
     } 
+
+    public function kills( $user, $args = null ) {
+        if( !$this->user_access( $user ) ) {
+
+            $this->speak( "No auth stored for $user" );
+        }
+
+        $record = $this->pps->get_auth_stats( $this->users[$user] );
+
+        $this->speak( $record['name'] . " kills: " . $record['kills'] );
+    }
 
     public function rank( $user, $args = null ) {
         if( !$this->user_access($user) ) {
 
-            $this->send( "No auth stored for user $user", $this->chan );
+            $this->speak( "No auth stored for user $user", $this->chan );
             return;
         }
         
@@ -66,7 +99,12 @@ Trait irc_commands {
         $name = $result['name'];
         $result = $this->pps->get_player_rank( $name );
         if( $result ) {
-            $this->send( $name . "s rank: " . $result['rank'] . "/" . $result['total'], $this->chan );
+            //$data = $this->rank2color( $result['rank'], $result['total'] );
+            $data = $name; 
+            $data .= "\t : " . $result['rank'] . " / " . $result['total'];
+            $data .= "\t : " . $this->rank2string( $result['rank'], $result['total'] ); 
+
+            $this->speak( $data );
         }
     }
 
@@ -92,9 +130,9 @@ Trait irc_commands {
         if( $args[0] == 'gather' ) {
             $ratings = array();
             foreach( $args as $rating ) {
-                if( !is_numeric($rating) ) continue;
                 $ratings[] = $rating;
             }
+            var_dump( $ratings );
             $this->test_gather( $ratings );
         }
         else if( $args[0] == 'add' ) {

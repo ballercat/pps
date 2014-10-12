@@ -5,6 +5,7 @@ include "server.php";
 include "irc_server.php";
 include "gather_server.php";
 include "mysql_server.php";
+require("ppsconfig.php");
 
 /* Just a wrapper to manage the irc_server */
 /* This also is responsible for tying the irc class with 
@@ -222,9 +223,13 @@ function test_gather( &$pps, $ip )
 }
 
 $pps = new mock_pps();
-$pps->add_game_server( "192.210.137.129", "40001", "noodles" );
+foreach( $GATHER_LIST as $server ) {
+    $pps->add_game_server( $server['addr'], $server['port'], $server['pass'] );
+}
+
 $ip = gethostbyname("irc.quakenet.org");
 $pps->add_chat_server( $ip, "6667", "HenryVIII", "#soldat.na" );
+
 //test_gather( $pps, "192.210.137.129" );
 //test( $pps, $ip );
 $pps->connect();

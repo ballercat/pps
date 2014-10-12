@@ -51,7 +51,7 @@ class gather_man {
     public $bravo;
     public $alpha;
     public $game_number;
-    public $game_server;
+    public $game_server = null;
 
     public $game_password;
 
@@ -108,7 +108,10 @@ class gather_man {
 
     public function timeout( $player_count ) {
         if( $player_count < 6 && (time() >= $this->gather_timeout) ) {
-            $result = BOLD . "Gather $this->game_number has timed out. Deleting" . BOLD;
+            $result = BOLD . "Gather $this->game_number[" . $this->game_server->port . "]" . BOLD;
+            $result .= " has timed out. Deleting";
+
+            $this->gather_timeout = false;
             return $result;
         }
         if( $player_count > 5 && (time() >= $this->gather_timeout) ) {
@@ -148,7 +151,13 @@ class gather_man {
     }
 
     public function get_info() {
-        $result =  MCOLOR . BOLD . "Gather #$this->game_number " . BOLD . "~ ";
+        $result =  MCOLOR . BOLD . "Gather #$this->game_number ";
+        if( $this->game_server ) {
+
+            $result .= "[" .  $this->game_server->port . "] ";
+        }
+
+        $result .= BOLD . "~ ";
 
         if( $this->gather_started ) {
             $result .= "Players: $this->game_pc/6 Map: $this->game_map ";
@@ -186,6 +195,16 @@ class gather_man {
 
                 if( $i != 5 )   $result .= " - ";
                 else            $result .= " ~" ; 
+            }
+        }
+
+        if( $this->gather_timeout ) {
+
+            $to = $this->gather_timeout - time();
+            $result .= "~  TO: ";
+            if( $to < 0 ) {
+                
+                ($this->gather_timeout - time());
             }
         }
 
@@ -366,7 +385,7 @@ class gather_man {
         $prank = $rank['rank'];
         if( $prank < 6 ) {
             $this->player_color[$name] = BOLD . YELLOW;
-            $this->player_rank[$name] = BOLD . YELLOW . "[SS]";
+            $this->player_rank[$name] = YELLOW . "[SS]";
         }
         else if( $prank/$total < 0.1001 ) {
 

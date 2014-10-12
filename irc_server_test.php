@@ -13,17 +13,12 @@ Trait irc_server_test {
         $names = array( "cat", "dog", "mouse", "duck", "sheep", "wolf" );
         $ranks = array( 1, 6, 20, 30, 40, 50 );
         $i = 0;
+
         foreach( $players as  $rating ) {
+
             $result = false;
             $name = $names[$i];
-            if( $rating ) {
-                
-                $result = $tg->add_rated( $name, $rating, array('rank'=>$ranks[$i], 'total'=>100) );
-            }
-            else {
-                $result = $tg->add( $name );
-            }
-
+            $result = $tg->add_rated( $name, $rating, array('rank'=>$ranks[$i], 'total'=>100) );
             $this->send( $result, $this->chan );
             $i++;
         }

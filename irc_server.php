@@ -27,11 +27,12 @@ require('gather_commands.php');
 require('irc_commands.php');
 require('irc_server_test.php');
 require('qnet_users.php');
+require('irc_utility.php');
 
 define( 'SERVER_TYPE_IRC',  1 );
 
 class irc_server extends ppsserver {
-    Use qnet_users, gather_commands, irc_commands, irc_server_test;
+    Use qnet_users, gather_commands, irc_commands, irc_utility, irc_server_test;
 
     public $ip;
     public $port;
@@ -244,11 +245,17 @@ class irc_server extends ppsserver {
             $u = substr( $ut[0], 1 );
             if( $u != $this->nick ) {
 
-                $this->auth_array[] = $u;
                 if( !$this->init ) //Init has finished
                 {
-                    if( !count($this->auth_array) ) 
+                    if( !count($this->auth_array) ) {
+
+                        $this->auth_array[] = $u;
                         $this->store_auth( null, null );
+                    }
+                    else {
+
+                        $this->auth_array[] = $u;
+                    }
                 }
             }
 
@@ -289,7 +296,7 @@ class irc_server extends ppsserver {
         //Get vals 
         $user_tokens = explode('!', $useragent );
         $user = substr( $user_tokens[0], 1 );
-        $args = array_filter( explode(' ', $args) );
+        $args = array_filter( explode(' ', $args), 'strlen' );
         $method = substr( $cmd, 2 );
         
         if( method_exists('irc_server', $method) ) {
@@ -297,7 +304,14 @@ class irc_server extends ppsserver {
             $this->$method( $user, $args );
         }
     }
-         
+    
+    public function user_rank_letter_str( $user_id )
+    {
+        $rank = $this->pps->get_player_rank( null, $user_id );
+        $total = $rank['total'];
+        $prank = $rank['rank'];
+    }
+
     //SOLDAT SERVER COMMANDS
     public function PJOIN( $caller, $line ) {
         $port = $caller->port;
@@ -371,8 +385,9 @@ class irc_server extends ppsserver {
         //I can't really do poll events in php very well.
         //But Soldat can... sending /timer <seconds> <string> to soldat server will make it fire off this 
         //command back to console after <seconds> with <string> suplied
-        list( $cmd, $key ) = explode( " ", $line, 2 );
-        $this->timeout( array("key" => $key) );
+        $ip = $caller->ip;
+        $port = $caller->port;
+        $this->timeout( "$ip:$port" );
     }
 }
 

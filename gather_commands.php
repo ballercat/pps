@@ -44,7 +44,7 @@ Trait gather_commands{
         if( $this->current_gather->is_full() ) {
             
             //Start gather
-            $this->start_gather( $this->current_gather, 2 );
+            $this->start_gather( $this->current_gather, 3 );
         }
     }
 
@@ -71,36 +71,45 @@ Trait gather_commands{
 
     function status ( $user, $args = null ) {
         
-        foreach( $this->gathers as $gather ) {
-
-            $this->send( $gather->get_info() , $this->chan ); 
-        }
-
-        if( !count($this->gathers) ) {
-
-            $this->send( "No gathers being played...", $this->chan );
-        }
 
         if( $this->current_gather ) {
 
-            $this->send( $this->current_gather->get_info(), $this->chan );
+            $this->speak( $this->current_gather->get_info(), $this->chan );
         }
         else {
 
-            $this->send( "No gather pending...", $this->chan );
+            $this->speak( "No gather pending...", $this->chan );
+        }
+    }
+    
+    function playing ( $user, $args = null ) {
+
+        $i = 0;
+        foreach( $this->gathers as $gather ) {
+
+            if( $gather->is_full() ) {
+                $i++;
+                $this->speak( $gather->get_info() );
+            }
+        }
+
+        if( !$i ) {
+            $this->speak( "No gathers being played" );
         }
     }
     
     //Callback for automated gather timeout
-    function timeout( $args ) {
-        $refresh = $this->gathers[$args["key"]]->game_server->get_refreshx();
+    function timeout( $key ) {
+        debug_print_backtrace( 0, 1 );
+
+        $refresh = $this->gathers[$key]->game_server->get_refreshx();
         if( !$refresh ) return;
 
-        $result = $this->gathers[$args["key"]]->timeout( $refresh['players'] );
+        $result = $this->gathers[$key]->timeout( $refresh['players'] );
 
         if( $result ) {
-            $this->send( $result, $this->chan );
-            $this->end_gather( $this->gathers[$args["key"]] );
+            $this->speak( $result );
+            $this->end_gather( $this->gathers[$key] );
         }
     }
 
@@ -110,19 +119,22 @@ Trait gather_commands{
 
         $line_parser = function ( $caller, $line  ) use ($irc_copy) {
             $cmd = substr( $line, 0, 5 );
+            $key = "$caller->ip:$caller->port";
             
+            if( !array_key_exists($key, $irc_copy->gathers) ) return;
+
             if( method_exists('irc_server', $cmd) ) {
 
-                $key = "$caller->ip:$caller->port";
-                if( !array_key_exists($key, $irc_copy->gathers) ) return;
+                $irc_copy->$cmd( $caller, $line );
+            }
+            else if( !strpos($line, "connected") && !strpos($line, "disconnected")) {
 
                 if( $irc_copy->gathers[$key]->gather_timeout ) {
 
-                    $irc_copy->timeout( array( "key" => $key ) );
+                    echo "$line\n";
+                    $irc_copy->timeout( $key );
                 }
-
-                $irc_copy->$cmd( $caller, $line );
-            } 
+            }
         };
 
         $gather->game_server->set_line_parser( $line_parser );
