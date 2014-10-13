@@ -301,7 +301,7 @@ class irc_server extends ppsserver {
         
         if( method_exists('irc_server', $method) ) {
             
-            $this->$method( $user, $args );
+            $this->$method( $user, $args, $channel );
         }
     }
     

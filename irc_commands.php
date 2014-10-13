@@ -3,17 +3,23 @@
 Trait irc_commands {
 
    /* Bellow are commands called from IRC */
-    public function quit( $user, $line )
+    public function quit( $user, $line, $channel = null )
     {
+        if( $channel != $this->nick ) {
+
+            $this->speak( "Don't..." );
+            return;
+        } 
+
         if( !$this->admin_access( $user ) ) return;
         
         $sec = time() - $this->uptime;
 
-        $tm = ( $sec > 59 ) ? round($sec/60, 2) . "min" : $sec . "sec";
+        $tm = round($sec/3600, 2) . " hours";
 
         $this->speak( "Quit called: Leaving. Uptime: $tm" );
 
-        exit(0);
+        exit(0); //note exit nicer
     }
 
     public function sinfo ( $user, $args ) {
@@ -24,7 +30,7 @@ Trait irc_commands {
         } 
     }
 
-    public function auth ( $user, $args = null ) {
+    public function auth ( $user, $args = null, $channel = null ) {
         if( !$this->user_access($user) ) {
 
             $this->send( "No auth stored for user $user", $this->chan );
@@ -36,6 +42,14 @@ Trait irc_commands {
 
     public function rating ( $user, $args = null ) {
 
+        if( count($args) && $args[0] == '-u' ) {
+
+            if( !$this->admin_access($user) ) return; 
+            if( count($args) != 2 ) return;
+
+            $user = $args[1];
+        } 
+        
         if( !array_key_exists($user, $this->users) || !$this->users[$user] ) {
 
             $this->send( "No auth stored for user $user", $this->chan );
@@ -108,12 +122,18 @@ Trait irc_commands {
         }
     }
 
-    public function ls ( $user, $args = null ) {
+    public function ls ( $user, $args = null, $channel ) {
+        
+        if( $channel != $this->nick ) return;
+
         exec( "ps aux | grep php", $output );
+
         foreach( $output as $line ) {
+
             if( preg_match("/php\s+(?P<script>\w+)\.php$/", $line, $matches) ) {
+
                 $script = $matches['script'];
-                $this->send( "$script running...", $this->chan );
+                $this->send( "$script running...", $channel );
             }
         }
     }
@@ -124,15 +144,17 @@ Trait irc_commands {
         $this->send($result, $user);
     }
 
-    public function test ( $user, $args = null ) {
+    public function test ( $user, $args = null, $channel = null ) {
         if( !array_key_exists(0, $args) ) return; 
+
+        if( $channel != $this->nick ) return;
 
         if( $args[0] == 'gather' ) {
             $ratings = array();
             foreach( $args as $rating ) {
-                $ratings[] = $rating;
+                if( !is_numeric( $rating ) ) continue;
+                $ratings[] = floatval( $rating );
             }
-            var_dump( $ratings );
             $this->test_gather( $ratings );
         }
         else if( $args[0] == 'add' ) {

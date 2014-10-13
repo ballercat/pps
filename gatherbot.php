@@ -222,6 +222,40 @@ function test_gather( &$pps, $ip )
     exit( 0 );
 }
 
+/*$gather = new gather_man( 0, null );
+$a = array(  );
+$b = array(  );
+
+$ratings = array( 50, 30, 20, 10, 5, 1 );
+
+$r = 0;
+
+mt_srand( crc32(microtime()) );
+
+do {
+    $a = array();
+    $b = array();
+
+    $rated = $ratings;
+    arsort( $rated );
+
+    foreach( $rated as $rt ) {
+
+        $r =  $gather->rating_balanced_pick( $a, $b, $rt );
+        echo " $r\n";        
+    }
+
+    echo "\n";
+    if( count($b) == 4 ) break;
+    if( count($a) == 4 ) break;
+}while( true );
+
+var_dump( $a );
+var_dump( $b );
+
+exit(0);
+ */
+
 $pps = new mock_pps();
 foreach( $GATHER_LIST as $server ) {
     $pps->add_game_server( $server['addr'], $server['port'], $server['pass'] );

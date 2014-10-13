@@ -34,7 +34,6 @@ Trait qnet_users
     function store_auth( $user, $auth )
     {
         if( $user ) {
-            echo "AUTH: $user = $auth\n";
             $this->users[$user] = $auth;
         }
 

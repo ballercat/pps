@@ -55,6 +55,7 @@ class gather_man {
 
     public $game_password;
 
+    public $gather_timer;
     public $gather_timeout = false;
     public $gather_started = false;
 
@@ -90,6 +91,7 @@ class gather_man {
         $this->bravo = new team( 2 );
         $this->game_timer = time();
         $this->game_map_timer = time();
+        $this->gather_timer = time();
     }
 
     public function is_full() 
@@ -109,7 +111,7 @@ class gather_man {
     public function timeout( $player_count ) {
         if( $player_count < 6 && (time() >= $this->gather_timeout) ) {
             $result = BOLD . "Gather $this->game_number[" . $this->game_server->port . "]" . BOLD;
-            $result .= " has timed out. Deleting";
+            $result .= " has timed out after " . round((time() - $this->gather_timer)/60, 2) . "min. Deleting";
 
             $this->gather_timeout = false;
             return $result;
@@ -204,8 +206,12 @@ class gather_man {
             $result .= "~  TO: ";
             if( $to < 0 ) {
                 
-                ($this->gather_timeout - time());
+                $result .= "0 +" . $to*-1 . "(extra time)";
             }
+            else {
+                $result .= $to;
+            }
+            
         }
 
         return $result;
@@ -215,12 +221,25 @@ class gather_man {
     //Makes best possible, balanced pick based on data provided
     //$pick is a string reperesenting the player name
     //Returns the number of the team that made the pick: 1 for alpha, 2 for bravo
-    private function rating_balanced_pick( &$alpha, &$bravo, $pick )
+    public function rating_balanced_pick( &$alpha, &$bravo, $pick )
     {
         $alpha_total = array_sum( $alpha );
         $bravo_total = array_sum( $bravo );
         $alpha_size = count( $alpha );
         $bravo_size = count( $bravo );
+
+        //echo "asz: $alpha_size at: " . $alpha_total . " | bsz: $bravo_size bt: " . $bravo_total . "\n";
+        
+        if( intval($alpha_size) === 3 ) {
+
+            $bravo[] = $pick;
+            return 2;
+        }
+        else if( intval($bravo_size) === 3 ) {
+
+            $alpha[] = $pick;
+            return 1;
+        }
 
         //Pick who gets next pick, based on :
         // Team Size) Team with fewer players should get priority
@@ -250,6 +269,7 @@ class gather_man {
             $team = mt_rand(1,2);  //mt_rand is great, should be around 50/50 results
         }
 
+        
         if( $team == 1 ) {
             $alpha[] = $pick;
         }
@@ -314,6 +334,8 @@ class gather_man {
             $rated = $this->rated_players;
             arsort( $rated );
 
+            var_dump( $rated );
+
             foreach( $rated as $name => $rating ) {
                 //Make the picks
                 $team = $this->rating_balanced_pick( $alpha, $bravo, $rating );
@@ -330,16 +352,18 @@ class gather_man {
 
         //Format result
         $result .= RED . "Alpha Team(";
-        $result .= round($this->alpha->average_rating(),2) . "):";
+        $result .= round($this->alpha->average_rating(),2) . "): ";
         foreach( $this->alpha->p as $p ) {
-            $result .= " " . $p;
+            $result .= $p;
+            $result .= " ";
         }
         $result .= "\n";
 
         $result .= BLUE . "Bravo Team(";
-        $result .= round($this->bravo->average_rating(),2) . "):";
+        $result .= round($this->bravo->average_rating(),2) . "): ";
         foreach( $this->bravo->p as $p ) {
-            $result .= " " . $p;
+            $result .= $p;
+            $result .= " ";
         }
         $result .= "\n";
         //Generate password
@@ -350,6 +374,8 @@ class gather_man {
         $result .= MCOLOR ." ~ Gather #$this->game_number: " . BOLD . " Tiebreaker is $this->game_tiebreaker ";
         $result .= ":: " . UNDERLINE . "server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password";
         $result .= NORMAL . "\n";
+
+        $this->gather_timer = time();
 
         $this->gather_started = true;
 
@@ -384,8 +410,8 @@ class gather_man {
         $total = $rank['total'];
         $prank = $rank['rank'];
         if( $prank < 6 ) {
-            $this->player_color[$name] = BOLD . YELLOW;
-            $this->player_rank[$name] = YELLOW . "[SS]";
+            $this->player_color[$name] = BOLD . PURPLE;
+            $this->player_rank[$name] = PURPLE . "[SS]";
         }
         else if( $prank/$total < 0.1001 ) {
 

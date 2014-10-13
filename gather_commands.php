@@ -100,7 +100,7 @@ Trait gather_commands{
     
     //Callback for automated gather timeout
     function timeout( $key ) {
-        debug_print_backtrace( 0, 1 );
+        //debug_print_backtrace( 0, 1 );
 
         $refresh = $this->gathers[$key]->game_server->get_refreshx();
         if( !$refresh ) return;
@@ -131,7 +131,7 @@ Trait gather_commands{
 
                 if( $irc_copy->gathers[$key]->gather_timeout ) {
 
-                    echo "$line\n";
+                    //echo "$line\n";
                     $irc_copy->timeout( $key );
                 }
             }
