@@ -31,7 +31,7 @@ Trait irc_utility {
         $strings = array_merge( $strings, array_fill(11,10, BOLD . ORANGE  . "[B]" . BOLD) );
         $strings = array_merge( $strings, array_fill(21,10, BOLD . LIME    . "[C]" . BOLD) );
         $strings = array_merge( $strings, array_fill(31,10, BOLD . LBLUE   . "[D]" . BOLD) );
-        $strings = array_merge( $strings, array_fill(41,60, BOLD . BLACK   . "[F]" . BOLD) );
+        $strings = array_merge( $strings, array_fill(41,61, BOLD . BLACK   . "[F]" . BOLD) );
 
         $p = intval($rank/($total/100));
 
