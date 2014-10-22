@@ -51,25 +51,40 @@ class mysql_server extends ppsserver {
     public function disconnect() 
     {
         if( $this->mysqli ) {
-            $this->prep->reset();
+
+            if( $this->prep ) 
+                $this->prep->reset();
+
             $this->mysqli->close();
             $this->mysqli = null;
             $this->connected = false;
         } 
     }
 
-    public function connect() 
+    public function connect( $prep = true ) 
     {
         if( $this->mysqli ) {
+
             $this->mysqli->close();
             $this->mysqli = null;
         }
 
         $this->mysqli = new mysqli( $this->ip, $this->user, $this->pass, $this->db_name );
         if( $this->mysqli->connect_errno ) {
-            die( 'Connect error ' . $this->mysqli->connect_error );
+
+            echo '--> Connect error ' . $this->mysqli->connect_error . "\n";
         }
 
+        if( $prep ) {
+
+            $this->prep();
+        }
+
+        $this->connected = true;
+    }
+
+    public function prep()
+    {
         $this->prep = $this->mysqli->stmt_init();
         
         $prepare_str  = "UPDATE players SET kills=?,";
@@ -112,8 +127,6 @@ class mysql_server extends ppsserver {
         $prepare_str .= " WHERE hwid=?";
         
         $this->prep->prepare($prepare_str) or die("COULD NOT PREP");
-
-        $this->connected = true;
     }
 
     public function set_auth( $code, $auth )
@@ -121,13 +134,125 @@ class mysql_server extends ppsserver {
         return $this->mysqli->query( "UPDATE players SET auth=\"$auth\" WHERE code=\"$code\"" );
     }
 
+    public function get_account_users( $auth, $code ) 
+    {
+
+        $accounts = null;
+
+        if( !$code ) return null;
+        //The user must have some real data to be able to access this info
+        $result = $this->mysqli->query( "SELECT * FROM players WHERE code=\"$code\"" );
+        if( $result->num_rows < 1 ) return null;
+
+        $accounts = array( $result->fetch_array(MYSQLI_ASSOC) );
+
+        $result = $this->mysqli->query( "SELECT * FROM players WHERE auth=\"$auth\"" );
+        $record = $result->fetch_array( MYSQLI_ASSOC );
+
+        while( $record ) {
+
+            $accounts[] = $record;
+            $record = $result->fetch_array( MYSQLI_ASSOC );
+        }
+
+        return $accounts;
+    }
+
+    public function merge_account_users( $saved_code , $auth )
+    {
+        $accounts = $this->get_account_users( $auth, $saved_code );
+
+        if( !$accounts ) {
+            return "No accounts found for code: $code";
+        }
+
+        $highlander = null; 
+        foreach( $accounts as $player ) {
+
+            if( $player['code'] == $saved_code ) {
+
+                $highlander = new base_player( $player, $player['acc_name'] );
+                break;
+            }
+        }
+
+        if( !$highlander ) return "Merge failed";
+
+        $text = "Merged accounts: ";
+        foreach( $accounts as $user_data ) {
+            
+            $text .= $user_data['name'] . "(" . $user_data['user_id'] . ") ";
+            if( $user_data['code'] == $saved_code ) continue;
+            $player = new base_player( $user_data );
+
+            $highlander->k += $player->k;
+            $highlander->d += $player->d;
+            $highlander->mlt[1] += $player->mlt[1];
+            $highlander->mlt[2] += $player->mlt[2];
+            $highlander->mlt[3] += $player->mlt[3];
+
+            $highlander->c += $player->c;
+            $highlander->g += $player->g;
+            $highlander->r += $player->r;
+
+            $highlander->w['Desert Eagles'] += $user_data['Desert Eagles']; 
+            $highlander->w['HK MP5'] += $user_data['HK MP5']; 
+            $highlander->w['Ak-74'] += $user_data['Ak-74'];
+            $highlander->w['Steyr AUG'] += $user_data['Steyr AUG'];
+            $highlander->w['Spas-12'] += $user_data['Spas-12'];
+            $highlander->w['Ruger 77'] += $user_data['Ruger 77'];
+            $highlander->w['M79'] += $user_data['M79'];
+            $highlander->w['Barrett M82A1'] += $user_data['Barrett M82A1'];
+            $highlander->w['FN Minimi'] += $user_data['FN Minimi'];
+            $highlander->w['Selfkill'] += $user_data['Selfkill'];
+            $highlander->w['Combat Knife'] += $user_data['Combat Knife'];
+            $highlander->w['Chainsaw'] += $user_data['Chainsaw'];
+            $highlander->w['LAW'] += $user_data['LAW'];
+            $highlander->w['Grenade'] += $user_data['Grenade'];
+            $highlander->w['Hands'] += $user_data['Hands'];
+
+            $highlander->plus_minus += $player->plus_minus;
+            $highlander->mu += $player->mu;
+            $highlander->sigma += $player->sigma;
+            $highlander->dominations += $player->dominations;
+            $highlander->tp += $player->tp;
+
+            $this->mysqli->query( "DELETE from players WHERE code=\"$player->code\"" );
+        } 
+
+        $text .= "into " .  $highlander->name;
+
+        $highlander->update_kdr();
+        $highlander->update_cgr();
+        $highlander->update_ckr();
+
+        $highlander->sigma = $highlander->sigma/count($accounts);
+        $highlander->mu = $highlander->mu/count($accounts);
+        $highlander->rating = $highlander->mu - ( $highlander->sigma * 2.5 ); 
+
+        $this->write_player_stats( $highlander );
+
+        return $text;
+    }
+
     public function bind_user_auth( $name, $auth, $code ) 
     {
+        
         $result = $this->mysqli->query( "SELECT name FROM players WHERE code=\"$code\"" );
         if( $result ) {
+
             $record = $result->fetch_array( MYSQLI_ASSOC );
-            if( $this->set_auth( $code, $auth ) )
-                return "Sucess! User: $name, has been updated with new auth: $auth";
+            if( count($record ) ) {
+
+                //Run a check for wheter or not the user exists already with a different HWID
+                $result = $this->mysqli->query( "SELECT name FROM players WHERE auth=\"$auth\"" );
+                if( $result->num_rows > 1 ) {
+                   return "More than one user bound to account $auth";
+                }
+
+                if( $this->set_auth( $code, $auth ) )
+                    return "Sucess! User: $name, has been updated with new auth: $auth";
+            }
         }
         return "Failed to update auth. user:$name  auth:$auth";
     }
@@ -261,6 +386,45 @@ class mysql_server extends ppsserver {
         } 
 
         return $record;
+    }
+
+    public function give_points( $user_id, $points, $type ) 
+    {
+        $result = $this->mysqli->query( "SELECT * FROM points WHERE user_id=$user_id AND type=\"$type\"" );
+        if( $result->num_rows > 0 ) {
+
+            $this->mysqli->query( "UPDATE points SET points=points+$points WHERE user_id=$user_id AND type=\"$type\"" );
+            return true;
+        }
+        else {
+
+            $this->mysqli->query( "INSERT INTO points(user_id,points,type,issued) VALUES($user_id,$points,\"$type\",NOW())" ); 
+            return true;
+        }
+
+        return false;
+    }
+
+    public function get_points( $user_id ) //gets all the points
+    {
+
+        $result = $this->mysqli->query( "SELECT * FROM points WHERE user_id=$user_id" );
+        if( $result->num_rows < 1 ) return null;
+
+        $record = $result->fetch_array( MYSQLI_ASSOC );
+        $points = array();
+        while( $record ) {
+
+            $points[] = $record;
+            $record = $result->fetch_array( MYSQLI_ASSOC );
+        }
+
+        return $points;
+    }
+
+    public function erase_points( $user_id, $type ) 
+    {
+        return $this->mysqli->query( "DELETE FROM points WHERE user_id=$user_id AND type=\"$type\"" );
     }
 }
 

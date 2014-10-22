@@ -6,6 +6,7 @@ include "irc_server.php";
 include "gather_server.php";
 include "mysql_server.php";
 require("ppsconfig.php");
+require('tests.php');
 
 /* Just a wrapper to manage the irc_server */
 /* This also is responsible for tying the irc class with 
@@ -21,11 +22,15 @@ class mock_pps {
 
     public function __construct() 
     {
-        $this->database = new mysql_server( "localhost", "pps", "noodles", "pps" );
     }
 
     public function __destruct()
     {
+    }
+
+    public function add_mysql_server( $ip, $user, $pass, $db )
+    {
+        $this->database = new mysql_server( $ip, $user, $pass, $db );
     }
 
     public function add_game_server( $ip, $port, $adminlog ) {
@@ -87,35 +92,41 @@ class mock_pps {
     /* This function will attempt to get any info for server $ip:$port. Null if not acessible */
     public function get_info( $key )
     {
-        $keys = array_keys( $this->servers  );
         
-        if( count( $keys ) ) {
-            $info = [];
-            foreach( $keys as $k ) {
-                if( strpos($k, $key) !== false ) {
-                    $info[] = $this->servers[$k]->get_info();
-                }
-            }
-            if( count($info) ) return $info;
-        }
-        /*if( array_key_exists( $key, $this->servers) ) {
-            $info = $this->servers[$key]->get_info();
-        }*/
+        $info = [];
+        foreach( $this->servers as $server ) {
 
-        return array("No server found with this info: $key");
+            if( $server->type == SERVER_TYPE_SOLDAT ) {
+
+                $info[] = $server->get_info();
+            }
+        }
+
+        if( count($info) ) return $info;
+
+        return array("No servers found");
+    }
+
+    public function get_account_users( $auth, $code )
+    {
+        $this->database->connect( false );
+        $result = $this->database->get_account_users( $auth, $code );
+        $this->database->disconnect();
+        return $result;
     }
 
     public function bind_user_auth( $name, $auth, $code ) 
     {
-        $this->database->connect();
+        $this->database->connect( false );
         echo "Bind user auth: $name $auth $code\n";
         $result = $this->database->bind_user_auth( $name, $auth, $code );
         $this->database->disconnect();
         return $result; 
     }
 
-    public function get_auth_stats_string( $auth ) {
-        $this->database->connect();
+    public function get_auth_stats_string( $auth )
+    {
+        $this->database->connect( false );
         $record = $this->database->get_auth_stats( $auth );
         $this->database->disconnect();
 
@@ -183,82 +194,55 @@ class mock_pps {
             $this->release_game_server( $key );
         }
     }
-}
 
+    public function merge_account_users( $code, $auth ) {
+        $this->database->connect();
+        $result = $this->database->merge_account_users( $code, $auth );
+        $this->database->disconnect();
+        return $result;
+    }       
 
-function test( &$pps, $ip ) 
-{
-    //$pps->test( $ip, "6667", ":cat!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!test gather 1 2 3" );// 4 5 6" );
-    $pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!test add manate astr" );
-    exit( 0 );
-    $pps->test( $ip, "6667", ":dog!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    //$pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
-    $pps->test( $ip, "6667", ":rat!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    //$pps->test( $ip, "6667", ":]{ing!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
-    $pps->test( $ip, "6667", ":duck!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    $pps->test( $ip, "6667", ":goose!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    $pps->test( $ip, "6667", ":kiwi!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    exit( 0 );
-    $pps->test( $ip, "6667", ":bluejay!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    $pps->test( $ip, "6667", ":whale!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    $pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!add" );
-    //$pps->test( $ip, "6667", ":bluejay!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
-    //$pps->test( $ip, "6667", ":whale!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
-    //$pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
-    //$pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net PRIVMSG #soldat.na :!del" );
-    $pps->test( $ip, "6667", ":lion!~art@m974636d0.tmodns.net NICK :Lion" );
-        
-    exit(0);
-}
+    public function get_player_points( $user_id  ) 
+    {
+        $this->database->connect();
+        $result = $this->database->get_points( $user_id );
+        $this->database->disconnect();
+        return $result;
+    } 
 
-function test_gather( &$pps, $ip ) 
-
-{
-    $pps->servers["$ip:1337"]->connect();
-    $pps->servers["$ip:1337"]->send('/nextmap');
-    exit( 0 );
-    $ratings = array( 10, 9, 8, 7, 6, 5 );
-    $pps->test_gather( $ip, "6667", $ratings );
-    exit( 0 );
-}
-
-/*$gather = new gather_man( 0, null );
-$a = array(  );
-$b = array(  );
-
-$ratings = array( 50, 30, 20, 10, 5, 1 );
-
-$r = 0;
-
-mt_srand( crc32(microtime()) );
-
-do {
-    $a = array();
-    $b = array();
-
-    $rated = $ratings;
-    arsort( $rated );
-
-    foreach( $rated as $rt ) {
-
-        $r =  $gather->rating_balanced_pick( $a, $b, $rt );
-        echo " $r\n";        
+    public function give_player_point( $user_id, $points, $type )
+    {
+        $this->database->connect();
+        $result = $this->database->give_points( $user_id, $points, $type );
+        $this->database->disconnect();   
+        return $result;
     }
 
-    echo "\n";
-    if( count($b) == 4 ) break;
-    if( count($a) == 4 ) break;
-}while( true );
+    public function erase_player_points( $uer_id, $type )
+    {
+        $this->database->connect();
+        $this->database->erase_points( $user_id, $type );
+        $this->database->disconnect();
+    }
+}
 
-var_dump( $a );
-var_dump( $b );
-
-exit(0);
- */
 
 $pps = new mock_pps();
 foreach( $GATHER_LIST as $server ) {
-    $pps->add_game_server( $server['addr'], $server['port'], $server['pass'] );
+
+    if( $server['type'] == 'soldat' ) {
+
+        $pps->add_game_server( $server['addr'], $server['port'], $server['pass'] );
+    }
+
+    if( $server['type'] == 'mysql' ) {
+
+/*        $ut = new Tests( $server );
+        $ut->run( 'test_mysql_point_functions' );
+exit(0);*/
+
+        $pps->add_mysql_server( $server['addr'], $server['user'], $server['pass'], $server['db'] );
+    }
 }
 
 $ip = gethostbyname("irc.quakenet.org");

@@ -383,7 +383,7 @@ class gather_man {
     }
 
     //Extra step is done here to update rating values BEFORE the actual add
-    public function add_rated( $name, $rating, $rank )
+    public function add_rated( $name, $rating, $rank, $maps )
     {
         //This makes the check in 'add' redundant but its still necessary
         if( $this->pc != 6 && !$this->is_added( $name ) ) {
@@ -409,7 +409,13 @@ class gather_man {
         //'F' == < 60%
         $total = $rank['total'];
         $prank = $rank['rank'];
-        if( $prank < 6 ) {
+        if( $maps < 20 ) {
+            
+            $this->player_color[$name] = BLACK;
+            $this->player_rank[$name] = BLACK . "[N]";
+        }
+        else if( $prank < 6 ) {
+
             $this->player_color[$name] = BOLD . PURPLE;
             $this->player_rank[$name] = PURPLE . "[SS]";
         }

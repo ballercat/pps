@@ -183,6 +183,7 @@ class base_player{
             'Spas-12' => 0,
             'Ruger 77' => 0,
             'M79' => 0,
+            'Hands' => 0,
             'Barrett M82A1' => 0,
             'FN Minimi' => 0,
             'XM214 Minigun' => 0,
@@ -190,7 +191,7 @@ class base_player{
             'Combat Knife' => 0,
             'Chainsaw' => 0,
             'LAW' => 0,
-            'Grenade' => 0 
+            'Grenade' => 0
         );
 	
     }

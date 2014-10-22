@@ -2,49 +2,105 @@
 
 Trait irc_commands {
 
-   /* Bellow are commands called from IRC */
-    public function quit( $user, $line, $channel = null )
+    public function help( $user, $line = null, $channel = null )
     {
-        if( $channel != $this->nick ) {
-
-            $this->speak( "Don't..." );
-            return;
-        } 
-
-        if( !$this->admin_access( $user ) ) return;
-        
-        $sec = time() - $this->uptime;
-
-        $tm = round($sec/3600, 2) . " hours";
-
-        $this->speak( "Quit called: Leaving. Uptime: $tm" );
-
-        exit(0); //note exit nicer
+        $this->speak( "Ranked stats gather. use !cmds for the list of commands. Try !<cmd> --help" );
     }
 
-    public function sinfo ( $user, $args ) {
+    public function commands( $user, $line = null, $channel = null )
+    {
+        $irc_cmd_list = get_class_methods( 'irc_commands' );
+        $gather_cmd_list = get_class_methods( 'gather_commands' );
+
+        $result = "Commands: ";
+        foreach( $irc_cmd_list as $cmd ) {
+
+            $result .= "!" . $cmd . " ";
+        } 
+
+        foreach( $gather_cmd_list as $cmd ) {
+
+            $result .= "!" . $cmd . " ";
+        }
+
+        $this->speak( $result );
+    }
+
+    public function cmds( $user, $line = null, $channel = null ) { $this->commands($user); }
+
+    public function info ( $user, $args ) {
         $key = $args[0];
         $info = $this->pps->get_info( $key ); 
         foreach( $info as $info_string ) {
-            $this->send( $info_string, $this->chan );
+
+            
+            $this->speak( $info_string );
         } 
     }
 
     public function auth ( $user, $args = null, $channel = null ) {
+        if( $channel != $this->nick ) $this->error( "auth command should only be used as a PM to the bot." );
+
         if( !$this->user_access($user) ) {
 
-            $this->send( "No auth stored for user $user", $this->chan );
+            $this->error( "No auth stored for user $user", $user );
             return;
         }
 
-        $this->authenticate( $user, $this->users[$user], $args[0] );
+        $code = $args[0];
+        if( strlen($code) != 6 ) {
+
+            $this->error( "Invalid code. Must be six characters long", $user);
+            return;
+        }
+
+        $accounts = $this->pps->get_account_users( $this->users[$user], $code );
+        
+        if( count($accounts) > 1 ) {
+
+            $this->warning( "Can't auth. Auth(" . $this->users[$user]. ") has more than one account associated with it!", $user);
+            $this->warning( "You must \"!merge <your code>\" to combine accounts before you can !auth", $user );
+            return;
+        }
+
+        $this->authenticate( $user, $this->users[$user], $code );
+    }
+
+    public function merge( $user, $args = null, $channel = null ) {
+
+        if( $channel != $this->nick ) {
+            
+            $this->error( "merge command can only be used as a PM to the bot." );
+            return;
+        }
+
+        if( !$this->user_access( $user ) ) {
+
+            $this->error( "No auth stored for user $user", $user );
+            return;
+        }
+
+        if( !array_key_exists(0, $args) ) {
+
+            $this->error( "No code supplied", $user );
+            return;
+        }
+
+        $code = $args[0];
+        if( strlen($code) != 6 ) {
+            $this->error( "Invalid code. Must be six characters long", $user );
+            return;
+        }
+
+        $text = $this->pps->merge_account_users( $code, $this->users[$user] );
+
+        $this->speak( $text, $user );
     }
 
     public function rating ( $user, $args = null ) {
 
         if( count($args) && $args[0] == '-u' ) {
 
-            if( !$this->admin_access($user) ) return; 
             if( count($args) != 2 ) return;
 
             $user = $args[1];
@@ -52,7 +108,7 @@ Trait irc_commands {
         
         if( !array_key_exists($user, $this->users) || !$this->users[$user] ) {
 
-            $this->send( "No auth stored for user $user", $this->chan );
+            $this->error( "No auth stored for user $user", $this->chan );
             return;
         }          
 
@@ -65,7 +121,16 @@ Trait irc_commands {
             $tp = $result['time_played'];
             
             $info = $result['name'];
-            $info .= $this->rank2string( $rank['rank'], $rank['total'] ) . MCOLOR;
+
+            if( $result['maps'] > 19 ) {
+
+                $info .= $this->rank2string( $rank['rank'], $rank['total'] ) . MCOLOR;
+            }
+            else {
+
+                $info .= $this->rank_N_string() . MCOLOR;
+            }
+
             $info .= " ~ KD : " . $result['kd'] . " ~ CG: " . $result['cg'];
 
             $maps = ( $result['maps'] > 0 ) ? $result['maps'] : 1;
@@ -122,61 +187,25 @@ Trait irc_commands {
         }
     }
 
-    public function ls ( $user, $args = null, $channel ) {
-        
-        if( $channel != $this->nick ) return;
-
-        exec( "ps aux | grep php", $output );
-
-        foreach( $output as $line ) {
-
-            if( preg_match("/php\s+(?P<script>\w+)\.php$/", $line, $matches) ) {
-
-                $script = $matches['script'];
-                $this->send( "$script running...", $channel );
-            }
-        }
-    }
-
-    function authenticate( $user, $account, $code ) 
+    function played( $user, $args = null, $channel = null )
     {
-        $result = $this->pps->bind_user_auth( $user, $account, $code );
-        $this->send($result, $user);
+        if( !$this->user_access( $user ) ) {
+
+            $this->speak( "No auth stored for user $user" );
+        }
+
+        $result = $this->pps->get_auth_stats( $this->users[$user] );
+
+        $now = new DateTime( "now" );
+        $last = new DateTime( $result['lastplayed'] );
+        $diff = date_diff( $now, $last );
+
+        $this->speak( "$user played ". $result['maps'] . " maps. Last map " . $diff->format('%a days ago') );
     }
 
-    public function test ( $user, $args = null, $channel = null ) {
-        if( !array_key_exists(0, $args) ) return; 
-
-        if( $channel != $this->nick ) return;
-
-        if( $args[0] == 'gather' ) {
-            $ratings = array();
-            foreach( $args as $rating ) {
-                if( !is_numeric( $rating ) ) continue;
-                $ratings[] = floatval( $rating );
-            }
-            $this->test_gather( $ratings );
-        }
-        else if( $args[0] == 'add' ) {
-            if( array_key_exists(1, $args) ) {
-                $this->add( $args[1] );
-            }
-        }
-        else if( $args[0] == 'del' ) {
-            if( array_key_exists(1, $args) ) {
-                $this->del( $args[1] );
-            }
-        }
-        else if( $args[0] == 'del_all' ) {
-            $this->speak( "Delete all" );
-        }
-        else if( $args[0] == 'empty' ) {
-            $this->speak( "Freeing everything" );
-            while( list($key, $gather) = each($this->gathers) ) {
-                $this->speak( "End gather #" . $gather->game_number );
-                $this->end_gather( $gather ); 
-            }
-        }
+    function points( $user, $args = null, $channel = null )
+    {
+        
 
     }
 

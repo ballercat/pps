@@ -4,6 +4,24 @@ Trait gather_commands{
     
     function add ( $user, $args = null ) {
 
+        if( count($args) ) {
+            
+            switch( $args[0] ) {
+
+            case "-u":
+                if( count($args) > 1 && $this->admin_access($user) ) {
+
+                    $user = $args[i];
+                    break;
+                }
+                return;
+            case "-h":
+            case "-help":
+                $this->speak( "Add to current gather, or start a new one." );
+                return;
+            }
+        }
+
         if( !$this->user_access( $user ) ) {
 
             $this->speak( "$user is not authed. Only authed users can add..." );
@@ -30,7 +48,8 @@ Trait gather_commands{
         $result = false;
         if( $auth_record ) {
             $rank = $this->pps->get_player_rank( null, $auth_record['user_id'] );
-            $result = $this->current_gather->add_rated( $user, $auth_record['rating'], $rank );
+            //Also send maps played
+            $result = $this->current_gather->add_rated( $user, $auth_record['rating'], $rank, $auth_record['maps'] );
         }
         else {
 
@@ -49,6 +68,23 @@ Trait gather_commands{
     }
 
     function del ( $user, $args = null ) {
+
+        if( count($args) ) {
+
+            switch( $args[0] ) {
+
+            case "-u":
+                if( count($args) > 1 && $this->admin_access($user) ) {
+                    $user = $args[1];
+                    break;
+                }
+                return;
+            case "-h":
+            case "--help":
+                $this->speak( "Delete from current gather." );
+                return;
+            };
+        }
 
         if( $this->current_gather != null ) {
 
@@ -98,69 +134,7 @@ Trait gather_commands{
         }
     }
     
-    //Callback for automated gather timeout
-    function timeout( $key ) {
-        //debug_print_backtrace( 0, 1 );
 
-        $refresh = $this->gathers[$key]->game_server->get_refreshx();
-        if( !$refresh ) return;
-
-        $result = $this->gathers[$key]->timeout( $refresh['players'] );
-
-        if( $result ) {
-            $this->speak( $result );
-            $this->end_gather( $this->gathers[$key] );
-        }
-    }
-
-    function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {
-        //Custom line parser for getting live soldat updates 
-        $irc_copy = $this;
-
-        $line_parser = function ( $caller, $line  ) use ($irc_copy) {
-            $cmd = substr( $line, 0, 5 );
-            $key = "$caller->ip:$caller->port";
-            
-            if( !array_key_exists($key, $irc_copy->gathers) ) return;
-
-            if( method_exists('irc_server', $cmd) ) {
-
-                $irc_copy->$cmd( $caller, $line );
-            }
-            else if( !strpos($line, "connected") && !strpos($line, "disconnected")) {
-
-                if( $irc_copy->gathers[$key]->gather_timeout ) {
-
-                    //echo "$line\n";
-                    $irc_copy->timeout( $key );
-                }
-            }
-        };
-
-        $gather->game_server->set_line_parser( $line_parser );
-
-        $ip = $gather->game_server->ip;
-        $port = $gather->game_server->port;
-
-        $this->send( $gather->start(), $this->chan );
-        $gather->game_server->set_tiebreaker( $gather->game_tiebreaker );
-
-        if( $tm_min || $tm_sec ) {
-            $gather->game_server->set_timer( $tm_min * 60 + $tm_sec, "$ip:$port" );
-            $gather->set_timeout( $tm_min * 60 + $tm_sec );
-        }
-
-        $this->gathers["$ip:$port"] = $gather;
-    }
-
-    function end_gather( $gather ) {
-        $ip = $gather->game_server->ip;
-        $port = $gather->game_server->port;
-
-        $this->pps->release_game_server( "$ip:$port" );
-
-        unset( $this->gathers["$ip:$port"] );
-    }
 }
 
 ?>

@@ -95,7 +95,7 @@ class gather_server extends ppsserver {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
         $refresh = $this->get_refreshx();
-        $info = "[$this->ip:$this->port] : " . $refresh['players'] . "/12  Map: ". $refresh['map'];
+        $info = "[$this->port] : " . $refresh['players'] . "/12  Map: ". $refresh['map'];
         return $info;
     }
 

@@ -126,9 +126,31 @@ class irc_server extends ppsserver {
         }
     }
 
-    public function speak( $data ) 
+    public function speak( $data, $channel = null ) 
     {
-        $this->send( MCOLOR ." ~ ". $data , $this->chan );
+        if( $channel == null ) $channel = $this->chan;
+        $this->send( MCOLOR ." ~ ". $data , $channel );
+    }
+
+    public function error( $data, $channel = null )
+    {
+        if( $channel == null ) $channel = $this->chan;
+        $this->send( BOLD . RED . " <!> " . BOLD . MCOLOR .  $data, $channel );
+    }
+
+    public function warning( $data, $channel = null, $user = null ) 
+    {
+        $text = "";
+        if( $user != null ) {
+
+            $text .= BOLD . $user . BOLD;
+        }
+
+        $text .=  BOLD . BLUE . " [#] " . BOLD . MCOLOR . $data;
+
+        if( !$channel ) $channel = $this->chan; 
+
+        $this->send( $text, $channel );
     }
 
     public function readbuffer( $size = 512 ) 

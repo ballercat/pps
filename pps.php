@@ -226,7 +226,7 @@ class pps{
                     socket_getpeername( $socket, $IP, $PORT );
                     if( !$this->servers["$IP:$PORT"]->readbuffer() ) {
                         //Zero byte buffer recieved. Attempt reconnect(s);
-                        echo "Zero byte buffer\n";
+                        echo "$IP:$PORT :: Zero byte buffer\n";
                         $socks = $this->get_sockets();
                     }
                 }
