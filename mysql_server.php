@@ -388,21 +388,21 @@ class mysql_server extends ppsserver {
         return $record;
     }
 
-    public function give_points( $user_id, $points, $type ) 
+    public function give_points( $user_id, $points, $type, $reason, $issuer ) 
     {
-        $result = $this->mysqli->query( "SELECT * FROM points WHERE user_id=$user_id AND type=\"$type\"" );
+        /*$result = $this->mysqli->query( "SELECT * FROM points WHERE user_id=$user_id AND type=\"$type\"" );
         if( $result->num_rows > 0 ) {
 
             $this->mysqli->query( "UPDATE points SET points=points+$points WHERE user_id=$user_id AND type=\"$type\"" );
             return true;
         }
-        else {
+        else {*/
 
-            $this->mysqli->query( "INSERT INTO points(user_id,points,type,issued) VALUES($user_id,$points,\"$type\",NOW())" ); 
-            return true;
-        }
+        $reason = ( $reason == null ) ? "" : $reason;
+        $issuer = ( $issuer == null ) ? "" : $issuer;
 
-        return false;
+        $this->mysqli->query( "INSERT INTO points(user_id,points,type,issued,reason,issuer) VALUES($user_id,$points,\"$type\",NOW(),\"$reason\",\"$issuer\")" ); 
+        return true;
     }
 
     public function get_points( $user_id ) //gets all the points

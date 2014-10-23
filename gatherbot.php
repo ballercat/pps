@@ -210,10 +210,10 @@ class mock_pps {
         return $result;
     } 
 
-    public function give_player_point( $user_id, $points, $type )
+    public function give_player_points( $user_id, $points, $type, $reason = null, $issuer = null )
     {
         $this->database->connect();
-        $result = $this->database->give_points( $user_id, $points, $type );
+        $result = $this->database->give_points( $user_id, $points, $type, $reason, $issuer );
         $this->database->disconnect();   
         return $result;
     }

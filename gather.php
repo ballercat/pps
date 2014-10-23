@@ -43,7 +43,8 @@ define( 'BOLD' , "\x02" );
 define( 'UNDERLINE', "\x1F" );
 define( 'NORMAL' , "\x0F" );
 
-define( 'MCOLOR', ORANGE );
+//define( 'MCOLOR', ORANGE );
+define( 'MCOLOR', GREY );
 
 class gather_man {
     public $pc;
@@ -62,6 +63,7 @@ class gather_man {
     //Rating related data
     public $rated_players;
     public $rated_player_count = 0;
+    public $player_hwid;
     public $low_rating = 0;
     public $top_rating = 0;
     public $rating_player_average = 0;
@@ -86,10 +88,12 @@ class gather_man {
         $this->rated_players = array();
         $this->player_rank = array();
         $this->player_color = array();
+        $this->player_hwid = array();
         $this->players = array();
         $this->alpha = new team( 1 );
         $this->bravo = new team( 2 );
         $this->game_timer = time();
+        $this->game_map = "lobby";
         $this->game_map_timer = time();
         $this->gather_timer = time();
     }
@@ -110,7 +114,7 @@ class gather_man {
 
     public function timeout( $player_count ) {
         if( $player_count < 6 && (time() >= $this->gather_timeout) ) {
-            $result = BOLD . "Gather $this->game_number[" . $this->game_server->port . "]" . BOLD;
+            $result = BOLD . "$this->game_number[#" . $this->game_number . "]" . BOLD;
             $result .= " has timed out after " . round((time() - $this->gather_timer)/60, 2) . "min. Deleting";
 
             $this->gather_timeout = false;
@@ -153,16 +157,12 @@ class gather_man {
     }
 
     public function get_info() {
-        $result =  MCOLOR . BOLD . "Gather #$this->game_number ";
-        if( $this->game_server ) {
+        $result =  TEAL . BOLD . "[#" . sprintf( "%04d", $this->game_number ) . "] ";
 
-            $result .= "[" .  $this->game_server->port . "] ";
-        }
-
-        $result .= BOLD . "~ ";
+        $result .= BOLD . MCOLOR. "~ ";
 
         if( $this->gather_started ) {
-            $result .= "Players: $this->game_pc/6 Map: $this->game_map ";
+            $result .= TEAL. BOLD . "CTF: $this->game_pc/6" . BOLD . MCOLOR . " Map: $this->game_map ";
             $result .= RED . "Alpha: $this->game_alpha_score " . MCOLOR . " - ";
             $result .= BLUE . "Bravo: $this->game_bravo_score " . MCOLOR;
         }
@@ -383,7 +383,7 @@ class gather_man {
     }
 
     //Extra step is done here to update rating values BEFORE the actual add
-    public function add_rated( $name, $rating, $rank, $maps )
+    public function add_rated( $name, $rating, $rank, $maps, $hwid = null)
     {
         //This makes the check in 'add' redundant but its still necessary
         if( $this->pc != 6 && !$this->is_added( $name ) ) {
@@ -397,6 +397,7 @@ class gather_man {
                 $this->top_rating = $rating;
             }
 
+            $this->player_hwid[$name] = $hwid;
             $this->rated_player_count++;
         }
 
@@ -407,6 +408,7 @@ class gather_man {
         //'C' == 70-79%
         //'D' == 60-69%
         //'F' == < 60%
+        //'N' == has not played enough
         $total = $rank['total'];
         $prank = $rank['rank'];
         if( $maps < 20 ) {
@@ -510,8 +512,19 @@ class gather_man {
         return $result;
     }
 
-    public function player_joined() {
+    public function player_joined( $hwid = null) {
+        debug_print_backtrace( 0, 1 ); 
         $this->game_pc++;
+
+        if( $hwid == null ) return;
+
+        while( list( $name, $key ) = each( $this->player_hwid ) ) {
+            
+            if( $key == $hwid ) {
+
+                unset( $this->player_hwid[$name] );
+            } 
+        }
     }
 
     public function player_left() {

@@ -80,6 +80,10 @@ Trait irc_utility {
                 $this->end_gather( $gather ); 
             }
         }
+        else if( $args[0] == 'fill' ) {
+
+            $this->fill_gather();
+        }
 
     }
 
@@ -120,7 +124,7 @@ Trait irc_utility {
     
     //Callback for automated gather timeout
     function timeout( $key ) {
-        //debug_print_backtrace( 0, 1 );
+        debug_print_backtrace( 0, 1 );
 
         $refresh = $this->gathers[$key]->game_server->get_refreshx();
         if( !$refresh ) return;
@@ -129,11 +133,21 @@ Trait irc_utility {
 
         if( $result ) {
             $this->speak( $result );
+
+            //Iussue banpoints for no shows
+            foreach( $this->gathers[$key]->player_hwid as $name=>$hwid ) {
+
+                $authr = $this->pps->get_auth_stats( $this->users[$name] );
+                $this->pps->give_player_points( $authr['user_id'], 1, "banpoint", "no show to gather #". $this->gathers[$key]->game_number , "Gatherbot" );
+                $this->warning( "$name did not show up to gather. Banpoint issued\n" );
+            }
+
             $this->end_gather( $this->gathers[$key] );
         }
     }
 
     function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {
+        $this->gc++;
         //Custom line parser for getting live soldat updates 
         $irc_copy = $this;
 

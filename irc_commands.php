@@ -205,10 +205,67 @@ Trait irc_commands {
 
     function points( $user, $args = null, $channel = null )
     {
-        
+        if( !$this->user_access( $user ) ) {
 
+            $this->error( "No auth stored for user $user" );
+            return;
+        }
+
+        $auth_stats = $this->pps->get_auth_stats( $this->users[$user] );
+
+        if( !$auth_stats ) {
+
+            $this->warning( "No stats stored for auth: " . $this->users[$user] );
+            return;
+        }
+
+        $points_record = $this->pps->get_player_points( $auth_stats['user_id'] );
+
+        if( count( $args ) && $args[0] == '--id' ) {
+            if( count( $args ) != 2 ) return;
+
+            foreach( $points_record as $point ) {
+
+                if( $point['id'] == $args[1] ) {
+
+                    $this->speak( "#" . $point['id'] . " " . $point['type'] . ". " . "Issued on " . $point['issued'] . " by " . $point['issuer'] . " reason: \"" . $point['reason'] . "\""  );
+                    return;
+                }
+            }
+        }
+
+        $point_count = array();
+
+        foreach( $points_record as $point ) {
+
+            if( !array_key_exists( $point['type'], $point_count ) ) {
+
+                $point_count[ $point['type'] ] = 0;
+            }
+
+            $point_count[ $point['type'] ]++; 
+        }
+
+        foreach( $point_count as $key => $count ) {
+
+            $text = BOLD . "$count $key(s).ids: " . BOLD;
+            foreach( $points_record as $point ) {
+
+                if( $point['type'] == $key ) {
+
+                   $text .= "#". $point['id'] . " " ; 
+                }
+            }
+
+            $this->speak( $text );
+        }
     }
 
+    function whypb( $user, $args = null, $channel = null ) {
+        if( !$args ) return;
+
+        $this->points( $user, $args, null );
+    }
 }
 
 ?>

@@ -31,6 +31,22 @@ Trait irc_server_test {
 
         $this->start_gather( $tg, 0, 60 );
     }
+
+    function fill_gather( ) {
+        
+        if( !$this->current_gather ) return;
+        $names = array( "_fiiler0", "_filler1", "_filler2", "_filler3", "_filler4", "_filler5" );
+
+        $diff = 6 - $this->current_gather->pc;
+
+        for( $i = 0; $i < $diff; $i++ ) {
+            
+            if( !$this->current_gather ) return; //safety check
+            $result = $this->current_gather->add( $names[$i] );
+            $this->send( $result, $this->chan );
+        }
+    }
+
 }
 
 ?>

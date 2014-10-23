@@ -11,7 +11,7 @@ Trait gather_commands{
             case "-u":
                 if( count($args) > 1 && $this->admin_access($user) ) {
 
-                    $user = $args[i];
+                    $user = $args[1];
                     break;
                 }
                 return;
@@ -40,16 +40,17 @@ Trait gather_commands{
                 return;
             }
             
-            $this->gc++;
+            //$this->gc++;
 
             $this->current_gather = new gather_man( $this->gc, $game_server );
         }
 
         $result = false;
         if( $auth_record ) {
+
             $rank = $this->pps->get_player_rank( null, $auth_record['user_id'] );
             //Also send maps played
-            $result = $this->current_gather->add_rated( $user, $auth_record['rating'], $rank, $auth_record['maps'] );
+            $result = $this->current_gather->add_rated( $user, $auth_record['rating'], $rank, $auth_record['maps'], $auth_record['hwid'] );
         }
         else {
 
@@ -63,7 +64,8 @@ Trait gather_commands{
         if( $this->current_gather->is_full() ) {
             
             //Start gather
-            $this->start_gather( $this->current_gather, 3 );
+            $this->start_gather( $this->current_gather, 1 );
+            $this->current_gather = null;
         }
     }
 
@@ -90,9 +92,6 @@ Trait gather_commands{
 
             $result = $this->current_gather->del( $user );
 
-            if( $result )
-                $this->send( $result, $this->chan );
-            
             //Remove the gather its empty
             if( $this->current_gather->is_empty() ) {
 
@@ -100,8 +99,12 @@ Trait gather_commands{
 
                 $this->end_gather( $this->current_gather );
                 $this->current_gather = null;
-                
+
+                return;
             }
+
+            if( $result )
+                $this->send( $result, $this->chan );
         }
     }
 
@@ -130,6 +133,7 @@ Trait gather_commands{
         }
 
         if( !$i ) {
+
             $this->speak( "No gathers being played" );
         }
     }

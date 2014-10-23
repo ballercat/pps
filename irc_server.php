@@ -100,8 +100,6 @@ class irc_server extends ppsserver {
         return true;
     }
 
-
-
     public function get_info() 
     {
         return "IRC server: $this->ip : $this->port ($this->chan)";
@@ -144,9 +142,9 @@ class irc_server extends ppsserver {
         if( $user != null ) {
 
             $text .= BOLD . $user . BOLD;
-        }
+        };
 
-        $text .=  BOLD . BLUE . " [#] " . BOLD . MCOLOR . $data;
+        $text .=  BOLD . BLUE . " [=] " . BOLD . MCOLOR . $data;
 
         if( !$channel ) $channel = $this->chan; 
 
@@ -341,7 +339,7 @@ class irc_server extends ppsserver {
         if( !array_key_exists("$ip:$port", $this->gathers) ) return;
         
         if( $this->gathers["$ip:$port"]->gather_timeout ) {
-            $this->timeout( array("key" => "$ip:$port") );
+            $this->timeout( "$ip:$port" );
         }
 
         list( $cmd, $hwid, $id, $team, $name ) = explode( " ", $line, 5 );
@@ -352,14 +350,17 @@ class irc_server extends ppsserver {
 
         //ALPHA: 1, BRAVO: 2 SPEC: 5
         if( $team == 1 || $team == 2 ) {
+            echo "PJOIN $name $team\n";
             $this->gathers["$ip:$port"]->game_pc++;
             $gm = $this->gathers["$ip:$port"]->game_number;
             $gpc = $this->gathers["$ip:$port"]->game_pc;
 
+            $this->gathers["$ip:$port"]->player_joined( $hwid );
+
             if( $team == 1 )
-                $this->send( "Gather #$gm [$ip:$port]". RED . " * Player joined($gpc/6): $name" . BLACK, $this->chan );
+                $this->send( TEAL . "[#". sprintf("%04d", $gm) . "]" . RED . MCOLOR . " ~ ($gpc/6) $name joined Alpha", $this->chan );
             if( $team == 2 )
-                $this->send( "Gather #$gm [$ip:$port]". BLUE . " * Player joined($gpc/6): $name" . BLACK, $this->chan );
+                $this->send( TEAL . "[#". sprintf("%04d", $gm) . "]" . BLUE . MCOLOR . " ~ ($gpc/6) $name joined Bravo", $this->chan );
         }
     }
 
@@ -369,7 +370,7 @@ class irc_server extends ppsserver {
         if( !array_key_exists("$ip:$port", $this->gathers) ) return;
 
         if( $this->gathers["$ip:$port"]->gather_timeout ) {
-            $this->timeout( array("key" => "$ip:$port") );
+            $this->timeout( "$ip:$port" );
         }
 
         list( $cmd, $id, $team, $name ) = explode( " ", $line, 4 );
@@ -394,7 +395,7 @@ class irc_server extends ppsserver {
         if( !array_key_exists("$ip:$port", $this->gathers) ) return;
 
         if( $this->gathers["$ip:$port"]->gather_timeout ) {
-            $this->timeout( array("key" => "$ip:$port") );
+            $this->timeout( "key" );
         }
 
         $result = $this->gathers["$ip:$port"]->nextmap();
