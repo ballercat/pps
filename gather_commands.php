@@ -63,7 +63,7 @@ Trait gather_commands{
         if( $this->current_gather->is_full() ) {
             
             //Start gather
-            $this->start_gather( $this->current_gather, 1 );
+            $this->start_gather( $this->current_gather, 4 );
             $this->current_gather = null;
         }
     }
