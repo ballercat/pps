@@ -48,6 +48,7 @@ Trait irc_utility {
     }
 
     public function test ( $user, $args = null, $channel = null ) {
+
         if( !array_key_exists(0, $args) ) return; 
 
         if( $channel != $this->nick ) return;
@@ -84,7 +85,6 @@ Trait irc_utility {
 
             $this->fill_gather();
         }
-
     }
 
     public function quit( $user, $line, $channel = null )

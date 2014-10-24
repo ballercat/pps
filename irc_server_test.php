@@ -44,7 +44,12 @@ Trait irc_server_test {
             if( !$this->current_gather ) return; //safety check
             $result = $this->current_gather->add( $names[$i] );
             $this->send( $result, $this->chan );
+
         }
+
+       $this->start_gather( $this->current_gather, 0, 30 );
+
+        $this->current_gather = null;
     }
 
 }

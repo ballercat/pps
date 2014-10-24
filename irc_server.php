@@ -350,17 +350,16 @@ class irc_server extends ppsserver {
 
         //ALPHA: 1, BRAVO: 2 SPEC: 5
         if( $team == 1 || $team == 2 ) {
-            echo "PJOIN $name $team\n";
-            $this->gathers["$ip:$port"]->game_pc++;
             $gm = $this->gathers["$ip:$port"]->game_number;
             $gpc = $this->gathers["$ip:$port"]->game_pc;
 
             $this->gathers["$ip:$port"]->player_joined( $hwid );
 
-            if( $team == 1 )
+            /*if( $team == 1 )
                 $this->send( TEAL . "[#". sprintf("%04d", $gm) . "]" . RED . MCOLOR . " ~ ($gpc/6) $name joined Alpha", $this->chan );
             if( $team == 2 )
                 $this->send( TEAL . "[#". sprintf("%04d", $gm) . "]" . BLUE . MCOLOR . " ~ ($gpc/6) $name joined Bravo", $this->chan );
+            */
         }
     }
 

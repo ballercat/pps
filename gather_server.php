@@ -95,7 +95,22 @@ class gather_server extends ppsserver {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
         $refresh = $this->get_refreshx();
-        $info = "[$this->port] : " . $refresh['players'] . "/12  Map: ". $refresh['map'];
+        $info = $refresh['map'] . " ~ " . $refresh['timeleft'];
+        
+        if( count( $refresh['player'] ) ) {
+
+            $info .= " ~ ";
+
+            foreach( $refresh['player'] as $player ) {
+
+                if( $player['team'] == 1 ) 
+                    $info .= " " . RED . $player['name'] . "(" . $player['kills'] . "/" . $player['deaths'] . ")[" . $player['caps'] . "]" . MCOLOR;
+
+                if( $player['team'] == 2 )
+                    $info .= " " . BLUE . $player['name'] . "(" . $player['kills'] . "/" . $player['deaths'] . ")[" . $player['caps'] . "]" . MCOLOR;
+            }
+        }
+
         return $info;
     }
 

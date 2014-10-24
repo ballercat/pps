@@ -29,7 +29,7 @@ Trait irc_commands {
     public function cmds( $user, $line = null, $channel = null ) { $this->commands($user); }
 
     public function info ( $user, $args ) {
-        $key = $args[0];
+        $key = ( array_key_exists( 0, $args ) ) ? $key = $args[0] : null;
         $info = $this->pps->get_info( $key ); 
         foreach( $info as $info_string ) {
 

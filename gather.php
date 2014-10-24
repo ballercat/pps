@@ -114,7 +114,7 @@ class gather_man {
 
     public function timeout( $player_count ) {
         if( $player_count < 6 && (time() >= $this->gather_timeout) ) {
-            $result = BOLD . "$this->game_number[#" . $this->game_number . "]" . BOLD;
+            $result = $this->id_string() . " ";
             $result .= " has timed out after " . round((time() - $this->gather_timer)/60, 2) . "min. Deleting";
 
             $this->gather_timeout = false;
@@ -156,8 +156,13 @@ class gather_man {
         return null;
     }
 
+    public function id_string() {
+        return (TEAL . BOLD . "[#" . sprintf( "%04d", $this->game_number ) . "]");
+    }
+
     public function get_info() {
-        $result =  TEAL . BOLD . "[#" . sprintf( "%04d", $this->game_number ) . "] ";
+
+        $result =  $this->id_string() . " ";
 
         $result .= BOLD . MCOLOR. "~ ";
 
@@ -523,6 +528,7 @@ class gather_man {
             if( $key == $hwid ) {
 
                 unset( $this->player_hwid[$name] );
+                return;
             } 
         }
     }

@@ -57,9 +57,8 @@ Trait gather_commands{
             $result = $this->current_gather->add( $user );
         }
 
-        if( !$result ) return;
-
-        $this->send( $result, $this->chan );
+        if( $result )
+            $this->send( $result, $this->chan );
 
         if( $this->current_gather->is_full() ) {
             
@@ -129,6 +128,7 @@ Trait gather_commands{
             if( $gather->is_full() ) {
                 $i++;
                 $this->speak( $gather->get_info() );
+                $this->speak( $gather->id_string() . " " . $gather->game_server->get_info() );
             }
         }
 
