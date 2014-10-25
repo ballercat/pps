@@ -22,6 +22,7 @@ Copyright: (C) 2009 Arthur, B. aka ]{ing <whinemore@gmail.com>
 */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+define( 'ABS_PATH', dirname(__FILE__) );
 
 $INFO= array();
 
@@ -32,11 +33,11 @@ define('DISCONNECTED', 8);
 define('IDLE', 16);
 
 include "refresh.php";
-include "server.php";
+include ABS_PATH . "/server/server.php";
 //include "pps_player.php";
-include "irc_server.php";
-include "soldat_server.php";
-include 'mysql_server.php';
+include ABS_PATH . "/server/irc_server.php";
+include ABS_PATH . "/server/soldat_server.php";
+include ABS_PATH . '/server/mysql_server.php';
 include "pps_base.php";
 require ("ppsconfig.php");
 
