@@ -97,6 +97,15 @@ Trait admin_commands {
             }
         }
     }
+
+    function set_top ( $user, $args = null, $channel = null ) {
+        if( !$this->admin_access( $user ) ) return;
+        if( !count($args) ) return;
+        if( !is_numeric($args[0]) ) return;
+
+        $this->top_voice = $args[0]; 
+        $this->voice_adjust();
+    }
 }
 
 ?>

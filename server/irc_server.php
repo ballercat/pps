@@ -71,6 +71,8 @@ class irc_server extends ppsserver {
 
     public $admins;
 
+    public $top_voice = 0.1;
+
     public function __construct($ip, $port, $nick, $channel) 
     {
         $this->ip   = $ip;
@@ -161,6 +163,12 @@ class irc_server extends ppsserver {
         $this->send( " " . BOLD . RED . UNDERLINE . "/!\\" . NORMAL .  " " . MCOLOR .  $data, $channel );
     }
 
+    public function success( $data, $channel = null )
+    {
+        if( $channel == null ) $channel = $this->chan;
+        $this->send( " " . BOLD . GREEN . UNDERLINE . "/!\\" . NORMAL .  " " . MCOLOR .  $data, $channel );
+    }
+
     public function warning( $data, $channel = null, $user = null ) 
     {
         $text = "";
@@ -211,10 +219,11 @@ class irc_server extends ppsserver {
 
     public function parse_line( $line )
     {   if( !strlen($line) ) return;
-        //echo "$line\n";      
         if( $this->connected && !$this->hooked ) {
+
             if( $line == "ERROR :Your host is trying to (re)connect too fast -- throttled" ) return;
             if( strpos($line, "End of /MOTD command.") !== false || strpos($line, "MOTD File is missing") ) {
+
                 $this->send( "AUTH ppsbot yak1soba", "Q@CServe.quakenet.org" );
                 socket_write( $this->sock, "JOIN $this->chan\r\n" );
                 $this->hooked = true;

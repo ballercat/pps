@@ -24,7 +24,7 @@ Trait irc_utility {
 
     function rank_percentile( $rank, $total ) 
     {
-        return $intval($rank/($total/100));
+        return intval($rank/($total/100));
     }
 
     function rank2color( $rank, $total )

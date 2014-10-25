@@ -66,6 +66,7 @@ Trait qnet_users
 
         if( !count($this->auth_array) && $this->init ) {
             $this->send( "Done", $this->chan );
+            $this->voice_adjust();
             $this->init = false;
         }
     }
@@ -74,6 +75,34 @@ Trait qnet_users
     {
         $result = $this->pps->bind_user_auth( $user, $account, $code );
         $this->send($result, $user);
+    }
+
+    function voice_adjust() {
+
+        if( count($this->users) ) {
+
+            $this->success( "Checking voice status. top $this->top_voice" );
+        }
+
+        foreach( $this->users as $user => $auth ) {
+
+            if( $auth ) {
+                
+                $auth_stats = $this->pps->get_auth_stats( $auth );
+                if( $auth_stats ) {
+                    
+                    $rank = $this->pps->get_player_rank( $auth_stats['name'] );
+                    $perc = $this->rank_percentile( $rank['rank'], $rank['total'] );
+                    if( $perc < $this->top_voice ) {
+
+                        $this->send( "MODE " . $this->chan . " +v $user\n", null );
+                    }
+                    else {
+                        $this->send( "MODE " . $this->chan . " -v $user\n", null );
+                    }
+                }
+            }
+        }
     }
 }
 ?>
