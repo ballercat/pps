@@ -1,4 +1,24 @@
 <?php
+/*
+This file is part of the PPS project <https://github.com/ballercat/pps>
+
+Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
+
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ .
+*/
 
 Trait irc_commands {
 
@@ -106,9 +126,9 @@ Trait irc_commands {
             $user = $args[1];
         } 
         
-        if( !array_key_exists($user, $this->users) || !$this->users[$user] ) {
+        if( !$this->user_access($user) ) {
 
-            $this->error( "No auth stored for user $user", $this->chan );
+            $this->error( $this->get_error_string(), $this->chan );
             return;
         }          
 
@@ -146,14 +166,16 @@ Trait irc_commands {
             $this->speak( $info );
         }
         else {
+
             $this->speak( "Could not find $user", $this->chan );
         }
     } 
 
-    public function kills( $user, $args = null ) {
+    public function kills( $user, $args = null, $channel = null ) {
         if( !$this->user_access( $user ) ) {
 
-            $this->speak( "No auth stored for $user" );
+            $this->error( $this->get_error_string(), $this->chan );
+            return;
         }
 
         $record = $this->pps->get_auth_stats( $this->users[$user] );
@@ -164,24 +186,29 @@ Trait irc_commands {
     public function rank( $user, $args = null ) {
         if( !$this->user_access($user) ) {
 
-            $this->speak( "No auth stored for user $user", $this->chan );
+            $this->error( $this->get_error_string(), $this->chan );
             return;
         }
         
-        $result = $this->pps->get_auth_stats( $this->users[$user] );
+        $auth_stats = $this->pps->get_auth_stats( $this->users[$user] );
 
-        if( !$result ) {
-            $this->send( "Auth `" . $this->users[$user] . "` is not recognized\n", $this->chan );
+        if( !$auth_stats ) {
+
+            $this->send( "This auth(" . $this->users[$user] . ") has no stats tied to it", $this->chan );
             return;
         }
 
-        $name = $result['name'];
+        $name = $auth_stats['name'];
         $result = $this->pps->get_player_rank( $name );
         if( $result ) {
             //$data = $this->rank2color( $result['rank'], $result['total'] );
             $data = $name; 
             $data .= "\t : " . $result['rank'] . " / " . $result['total'];
-            $data .= "\t : " . $this->rank2string( $result['rank'], $result['total'] ); 
+
+            if( $auth_stats['maps'] > 19 ) 
+                $data .= "\t : " . $this->rank2string( $result['rank'], $result['total'] ); 
+            else
+                $data .= "\t : " . $this->rank_N_string();
 
             $this->speak( $data );
         }

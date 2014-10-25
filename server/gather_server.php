@@ -1,6 +1,6 @@
 <?php
 /*
-This file 'gather_server.php' is part of the PPS project <http://code.google.com/p/fracsnetpps/>
+This file is part of the PPS project <https://github.com/ballercat/pps>
 
 Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
@@ -19,8 +19,6 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  .
 */
-
-//include 'server.php';
 
 define( 'SERVER_TYPE_SOLDAT', 2 );
 

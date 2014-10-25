@@ -1,6 +1,6 @@
 <?php
 /*
-This file 'irc_server.php' is part of the PPS project <http://code.google.com/p/fracsnetpps/>
+This file is part of the PPS project <https://github.com/ballercat/pps>
 
 Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
@@ -18,8 +18,8 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  .
-
 */
+
 require './pps_player.php';
 require './pps_teams.php';
 

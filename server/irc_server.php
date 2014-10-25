@@ -1,6 +1,6 @@
 <?php
 /*
-This file 'irc_server.php' is part of the PPS project <http://code.google.com/p/fracsnetpps/>
+This file is part of the PPS project <https://github.com/ballercat/pps>
 
 Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
@@ -18,16 +18,14 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  .
-
 */
 
-//require 'server.php';
-require 'gather.php';
-require('gather_commands.php');
-require('irc_commands.php');
-require('irc_server_test.php');
-require('qnet_users.php');
-require('irc_utility.php');
+require( ABS_PATH . '/gather/gather.php' );
+require( ABS_PATH . '/gather/gather_commands.php');
+require( ABS_PATH . '/gather/irc_commands.php');
+require( 'irc_server_test.php' );
+require( ABS_PATH . '/gather/irc_utility.php');
+require( ABS_PATH . '/gather/qnet_users.php');
 
 define( 'SERVER_TYPE_IRC',  1 );
 
@@ -57,6 +55,8 @@ class irc_server extends ppsserver {
     public $auth_cb_args = null;
     public $auth_array = null;
 
+    public $error_string = "";
+
     public $gathers;
     public $gc;
     public $current_gather = null;
@@ -85,17 +85,35 @@ class irc_server extends ppsserver {
 
     public function admin_access( $user ) 
     {
-        if( !array_key_exists( $user, $this->admins ) ) return false;
-        if( !array_key_exists( $user, $this->users ) ) return false;
+        if( !array_key_exists( $user, $this->admins ) ) {
+
+            $this->set_error( "$user is not an admin" );
+            return false;
+        }
+        if( !array_key_exists( $user, $this->users ) ) {
+
+            $this->set_error( "$user is not a user in system" );
+            return false;
+        }
         if( $this->users[$user] == $this->admins[$user] ) return true;
+
+        $this->set_error( "Admin access for $user is denied" );
 
         return false;
     }
 
     public function user_access( $user )
     {
-        if( !array_key_exists( $user, $this->users ) ) return false;
-        if( $this->users[$user] === false ) return false;
+        if( !array_key_exists( $user, $this->users ) ) {
+            
+            $this->set_error( "$user is not a user in system" );
+            return false;
+        }
+        if( $this->users[$user] === false ) {
+
+            $this->set_error( "No auth stored for $user" );
+            return false;
+        }
 
         return true;
     }
@@ -129,6 +147,9 @@ class irc_server extends ppsserver {
         if( $channel == null ) $channel = $this->chan;
         $this->send( MCOLOR ." ~ ". $data , $channel );
     }
+
+    public function set_error( $text ) { $this->error_string = $text; }
+    public function get_error_string() { return $this->error_string; }
 
     public function error( $data, $channel = null )
     {
