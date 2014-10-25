@@ -104,10 +104,10 @@ class gather_server extends ppsserver {
             foreach( $refresh['player'] as $player ) {
 
                 if( $player['team'] == 1 ) 
-                    $info .= " " . RED . $player['name'] . "(" . $player['kills'] . "/" . $player['deaths'] . ")[" . $player['caps'] . "]" . MCOLOR;
+                    $info .= " " . RED . $player['name'] . "(" . $player['kills'] . "/" . $player['deaths'] . ":" . $player['caps'] . ")" . MCOLOR;
 
                 if( $player['team'] == 2 )
-                    $info .= " " . BLUE . $player['name'] . "(" . $player['kills'] . "/" . $player['deaths'] . ")[" . $player['caps'] . "]" . MCOLOR;
+                    $info .= " " . BLUE . $player['name'] . "(" . $player['kills'] . "/" . $player['deaths'] . ":" . $player['caps'] . ")" . MCOLOR;
             }
         }
 

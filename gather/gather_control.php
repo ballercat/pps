@@ -43,7 +43,10 @@ Trait gather_control{
             }
 
             $this->end_gather( $this->gathers[$key] );
+            return true;
         }
+
+        return false;
     }
 
     function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {

@@ -391,30 +391,34 @@ class irc_server extends ppsserver {
             $gpc = $this->gathers["$ip:$port"]->game_pc;
 
             $this->gathers["$ip:$port"]->player_joined( $hwid );
-
-            /*if( $team == 1 )
-                $this->send( TEAL . "[#". sprintf("%04d", $gm) . "]" . RED . MCOLOR . " ~ ($gpc/6) $name joined Alpha", $this->chan );
-            if( $team == 2 )
-                $this->send( TEAL . "[#". sprintf("%04d", $gm) . "]" . BLUE . MCOLOR . " ~ ($gpc/6) $name joined Bravo", $this->chan );
-            */
         }
     }
 
     public function PLEFT( $caller, $line ) {
         $port = $caller->port;
         $ip = $caller->ip;
-        if( !array_key_exists("$ip:$port", $this->gathers) ) return;
+        $key = "$ip:$port";
+        if( !array_key_exists($key, $this->gathers) ) return;
 
-        if( $this->gathers["$ip:$port"]->gather_timeout ) {
-            $this->timeout( "$ip:$port" );
+        if( $this->gathers[$key]->gather_timeout ) {
+            $this->timeout($key );
         }
 
         list( $cmd, $id, $team, $name ) = explode( " ", $line, 4 );
 
         $leave_time = time();
         if( $team == 1 || $team == 2 ) {
-            $this->gathers["$ip:$port"]->game_pc--;
+            $result = $this->gathers[$key]->player_left( $name );
+
+            if( $result ) {
+
+                if( $this->gathers[$key]->is_empty() )
+                    $this->end_gather( $this->gathers[$key] );
+
+                $this->speak( $result );
+            }
         }
+
     }
 
     public function PCAPF( $caller, $line ) {
@@ -432,7 +436,8 @@ class irc_server extends ppsserver {
         if( !array_key_exists($key , $this->gathers) ) return;
 
         if( $this->gathers[$key]->gather_timeout ) {
-            $this->timeout( $key );
+            if( $this->timeout( $key ) )
+                return;
         }
 
         $result = $this->gathers[$key]->nextmap();

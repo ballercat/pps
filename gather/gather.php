@@ -23,63 +23,67 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 require './pps_player.php';
 require './pps_teams.php';
 
-define( 'BLACK', "\x031" );
-define( 'BROWN', "\x035" );
-define( 'RED',  "\x034" );
-define( 'BLUE' , "\x032" );
-define( 'GREEN' , "\x033" );
-define( 'CYAN', "\x0311" );
-define( 'LBLUE', "\x0312" );
-define( 'ORANGE', "\x037" );
-define( 'GREY', "\x0314" );
-define( 'LGREY', "\x0315" );
-define( 'PURPLE', "\x036" );
-define( 'PINK', "\x0313" );
-define( 'TEAL', "\x0310" );
-define( 'LIME', "\x039" );
-define( 'YELLOW', "\x038" );
+//Colors
+    define( 'BLACK', "\x031" );
+    define( 'BROWN', "\x035" );
+    define( 'RED',  "\x034" );
+    define( 'BLUE' , "\x032" );
+    define( 'GREEN' , "\x033" );
+    define( 'CYAN', "\x0311" );
+    define( 'LBLUE', "\x0312" );
+    define( 'ORANGE', "\x037" );
+    define( 'GREY', "\x0314" );
+    define( 'LGREY', "\x0315" );
+    define( 'PURPLE', "\x036" );
+    define( 'PINK', "\x0313" );
+    define( 'TEAL', "\x0310" );
+    define( 'LIME', "\x039" );
+    define( 'YELLOW', "\x038" );
 
-define( 'BOLD' , "\x02" );
-define( 'UNDERLINE', "\x1F" );
-define( 'NORMAL' , "\x0F" );
+    define( 'BOLD' , "\x02" );
+    define( 'UNDERLINE', "\x1F" );
+    define( 'NORMAL' , "\x0F" );
 
-//define( 'MCOLOR', ORANGE );
-define( 'MCOLOR', GREY );
+    //define( 'MCOLOR', ORANGE );
+    define( 'MCOLOR', GREY );
 
 class gather_man {
-    public $pc;
-    public $players;
-    public $bravo;
-    public $alpha;
-    public $game_number;
-    public $game_server = null;
 
-    public $game_password;
+    //Data
+        public $pc;
+        public $players;
+        public $bravo;
+        public $alpha;
+        public $game_number;
+        public $game_server = null;
 
-    public $gather_timer;
-    public $gather_timeout = false;
-    public $gather_started = false;
+        public $game_password;
 
-    //Rating related data
-    public $rated_players;
-    public $rated_player_count = 0;
-    public $player_hwid;
-    public $low_rating = 0;
-    public $top_rating = 0;
-    public $rating_player_average = 0;
-    public $rating_team_average = 0;
-    public $player_color;
-    public $player_rank;
+        public $gather_timer;
+        public $gather_timeout = false;
+        public $gather_started = false;
 
-    //Game data
-    public $game_active = false;
-    public $game_map = "";
-    public $game_pc = 0;
-    public $game_timer = 0;
-    public $game_alpha_score = 0;
-    public $game_bravo_score = 0;
-    public $game_map_timer = 0;
-    public $game_tiebreaker = "ctf_Laos";
+        //Rating related data
+            public $rated_players;
+            public $rated_player_count = 0;
+            public $player_hwid;
+            public $low_rating = 0;
+            public $top_rating = 0;
+            public $rating_player_average = 0;
+            public $rating_team_average = 0;
+            public $player_color;
+            public $player_rank;
+
+        //Game data
+            public $game_active = false;
+            public $game_map = "";
+            public $game_pc = 0;
+            public $game_timer = 0;
+            public $game_alpha_score = 0;
+            public $game_bravo_score = 0;
+            public $game_map_timer = 0;
+            public $game_tiebreaker = "ctf_Laos";
+
 
     public function __construct( $p_game_number, $game_server ) 
     {
@@ -108,6 +112,8 @@ class gather_man {
     {
         return ( $this->pc === 0 );
     }
+
+    public function is_active() { return $this->game_active; }
 
     public function set_timeout( $timeout ) {
         $this->gather_timeout = $this->game_timer + $timeout; 
@@ -301,7 +307,7 @@ class gather_man {
 
         if( $team == 1 ) {
 
-            if( $this->alpha->pc == 3 )
+            if( $this->alpha->count == 3 )
                 $this->bravo->add( $player );
             else
                 $this->alpha->add( $player );
@@ -309,8 +315,7 @@ class gather_man {
 
         if( $team == 2 ) {
 
-            if( $this->bravo->pc == 3 )
-                $this->alpha->add( $player );
+            if( $this->bravo->count == 3 ) $this->alpha->add( $player );
             else
                 $this->bravo->add( $player );
         }
@@ -541,7 +546,7 @@ class gather_man {
     }
 
     public function player_joined( $hwid = null) {
-        debug_print_backtrace( 0, 1 ); 
+//        debug_print_backtrace( 0, 1 ); 
         $this->game_pc++;
 
         if( $hwid == null ) return;
@@ -556,7 +561,7 @@ class gather_man {
         }
     }
 
-    public function player_left() {
+    public function player_left( $name ) {
         $this->game_pc--;
 
         if( $this->game_active && $this->is_empty() ) {
@@ -564,6 +569,11 @@ class gather_man {
             $this->game_active = false;
             return $this->id_string() . " ~ Gather finished";
         }
+        if( $this->game_pc == 5 || $this->game_pc == 4 ) {
+            return $this->id_string() . " ~ Sub may be needed";
+        }
+
+        return false;
     }
 
 }

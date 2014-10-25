@@ -349,7 +349,6 @@ class mysql_server extends ppsserver {
 
     public function get_player_rank( $name, $user_id = null, $code = null, $auth = null, $hwid = null )
     {
-        echo "USERID: $user_id\n";
         $token = 'name';
         $value = $name;
         if( $user_id != null ) {
