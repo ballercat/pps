@@ -72,6 +72,7 @@ class gather_man {
     public $player_rank;
 
     //Game data
+    public $game_active = false;
     public $game_map = "";
     public $game_pc = 0;
     public $game_timer = 0;
@@ -157,7 +158,7 @@ class gather_man {
     }
 
     public function id_string() {
-        return (TEAL . BOLD . "[#" . sprintf( "%04d", $this->game_number ) . "]");
+        return (TEAL . BOLD . "[" . sprintf( "%04d", $this->game_number ) . "]");
     }
 
     public function get_info() {
@@ -167,8 +168,8 @@ class gather_man {
         $result .= BOLD . MCOLOR. "~ ";
 
         if( $this->gather_started ) {
-            $result .= TEAL. BOLD . "CTF: $this->game_pc/6" . BOLD . MCOLOR . " Map: $this->game_map ";
-            $result .= RED . "Alpha: $this->game_alpha_score " . MCOLOR . " - ";
+            $result .= TEAL. BOLD . sprintf("CTF:\t%02d/06", $this->game_pc ) . BOLD ;
+            $result .= RED . "Alpha: $this->game_alpha_score" . MCOLOR . " - ";
             $result .= BLUE . "Bravo: $this->game_bravo_score " . MCOLOR;
         }
         else {
@@ -299,11 +300,19 @@ class gather_man {
         }
 
         if( $team == 1 ) {
-            $this->alpha->add( $player );
+
+            if( $this->alpha->pc == 3 )
+                $this->bravo->add( $player );
+            else
+                $this->alpha->add( $player );
         }
 
         if( $team == 2 ) {
-            $this->bravo->add( $player );
+
+            if( $this->bravo->pc == 3 )
+                $this->alpha->add( $player );
+            else
+                $this->bravo->add( $player );
         }
     }
 
@@ -339,7 +348,7 @@ class gather_man {
             $rated = $this->rated_players;
             arsort( $rated );
 
-            var_dump( $rated );
+            //var_dump( $rated );
 
             foreach( $rated as $name => $rating ) {
                 //Make the picks
@@ -356,21 +365,21 @@ class gather_man {
         $this->shuffle_teams( 1 );
 
         //Format result
-        $result .= RED . "Alpha Team(";
-        $result .= round($this->alpha->average_rating(),2) . "): ";
+        $result .= BOLD . RED . "Alpha Team(";
+        $result .= sprintf("%05.2f", $this->alpha->average_rating() ) . "): ";
         foreach( $this->alpha->p as $p ) {
-            $result .= $p;
-            $result .= " ";
+
+            $result .= sprintf("%-9s ", $p);
         }
         $result .= "\n";
 
-        $result .= BLUE . "Bravo Team(";
-        $result .= round($this->bravo->average_rating(),2) . "): ";
+        $result .= BOLD . BLUE . "Bravo Team(";
+        $result .= sprintf("%05.2f", $this->bravo->average_rating() ) . "): ";
         foreach( $this->bravo->p as $p ) {
-            $result .= $p;
-            $result .= " ";
+
+            $result .= sprintf("%-9s ", $p);
         }
-        $result .= "\n";
+        $result .= BOLD . " \n";
         //Generate password
         $this->game_password = sprintf( "%03d", mt_rand(1, 999) );
         $this->game_server->send("/password $this->game_password");
@@ -402,7 +411,9 @@ class gather_man {
                 $this->top_rating = $rating;
             }
 
-            $this->player_hwid[$name] = $hwid;
+            if( $hwid )
+                $this->player_hwid[$name] = $hwid;
+
             $this->rated_player_count++;
         }
 
@@ -496,19 +507,31 @@ class gather_man {
     {
         //if( $this->game_pc != 6 ) return false;
 
-        $timer = time() - $this->game_map_timer;
 
 /*        if( $this->game_alpha_score != 10 && $this->game_bravo_score != 10 ) {
             if( $timer < 300 ) {
                 return false;
             } 
 }*/
+        $timer = time() - $this->game_map_timer;
+
+        $result = false;
+
+        if( !$this->game_active && $this->is_full() ) {
+
+            $this->game_active = true;
+        }
+        else if( $this->game_active ){ //this becomes true after 6 ppl are playing & nextmap is called
+
+            if( $timer > 120 ) {
+
+                $timer = sprintf( "%02.2f", $timer/60 );
+                $result = $this->game_map . " has finished after " . $timer . "min.";
+                $result .= " With score:". BOLD . RED . " " . $this->game_alpha_score . MCOLOR . " -" . BLUE . " " . $this->game_bravo_score;   
+            }
+        }
 
         $refresh = $this->game_server->get_refreshx();
-        
-        $timer = sprintf( "%02.2f", $timer/60 );
-        $result = $this->game_map . " has finished after " . $timer . "min. With score: " . $this->game_alpha_score . " - " . $this->game_bravo_score;   
-
         $this->game_alpha_score = 0;
         $this->game_bravo_score = 0;
         $this->game_map_timer = time();
@@ -535,6 +558,12 @@ class gather_man {
 
     public function player_left() {
         $this->game_pc--;
+
+        if( $this->game_active && $this->is_empty() ) {
+
+            $this->game_active = false;
+            return $this->id_string() . " ~ Gather finished";
+        }
     }
 
 }

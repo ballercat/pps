@@ -59,11 +59,15 @@ Trait irc_commands {
     }
 
     public function auth ( $user, $args = null, $channel = null ) {
-        if( $channel != $this->nick ) $this->error( "auth command should only be used as a PM to the bot." );
+        if( $channel != $this->nick ) {
+
+            $this->error( "!auth command should only be used as a PM to the bot." );
+            return;
+        }
 
         if( !$this->user_access($user) ) {
 
-            $this->error( "No auth stored for user $user", $user );
+            $this->error( $this->get_error_string(), $user );
             return;
         }
 

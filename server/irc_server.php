@@ -21,8 +21,10 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 */
 
 require( ABS_PATH . '/gather/gather.php' );
+require( ABS_PATH . '/gather/gather_control.php' );
 require( ABS_PATH . '/gather/gather_commands.php');
 require( ABS_PATH . '/gather/irc_commands.php');
+require( ABS_PATH . '/gather/admin_commands.php');
 require( 'irc_server_test.php' );
 require( ABS_PATH . '/gather/irc_utility.php');
 require( ABS_PATH . '/gather/qnet_users.php');
@@ -30,7 +32,9 @@ require( ABS_PATH . '/gather/qnet_users.php');
 define( 'SERVER_TYPE_IRC',  1 );
 
 class irc_server extends ppsserver {
-    Use qnet_users, gather_commands, irc_commands, irc_utility, irc_server_test;
+    Use qnet_users, irc_utility, irc_server_test;
+    Use irc_commands, gather_commands, admin_commands;
+    Use gather_control;
 
     public $ip;
     public $port;
@@ -154,7 +158,7 @@ class irc_server extends ppsserver {
     public function error( $data, $channel = null )
     {
         if( $channel == null ) $channel = $this->chan;
-        $this->send( BOLD . RED . " <!> " . BOLD . MCOLOR .  $data, $channel );
+        $this->send( " " . BOLD . RED . UNDERLINE . "/!\\" . NORMAL .  " " . MCOLOR .  $data, $channel );
     }
 
     public function warning( $data, $channel = null, $user = null ) 
@@ -165,7 +169,7 @@ class irc_server extends ppsserver {
             $text .= BOLD . $user . BOLD;
         };
 
-        $text .=  BOLD . BLUE . " [=] " . BOLD . MCOLOR . $data;
+        $text .=  " " . BOLD . YELLOW . UNDERLINE . "/!\\" . NORMAL . " " . MCOLOR . $data;
 
         if( !$channel ) $channel = $this->chan; 
 
@@ -340,7 +344,10 @@ class irc_server extends ppsserver {
         $args = array_filter( explode(' ', $args), 'strlen' );
         $method = substr( $cmd, 2 );
         
-        if( method_exists('irc_server', $method) ) {
+        if( method_exists('gather_commands', $method) ||
+            method_exists('irc_commands', $method) ||
+            method_exists('admin_commands', $method) ) 
+        {
             
             $this->$method( $user, $args, $channel );
         }
@@ -412,14 +419,16 @@ class irc_server extends ppsserver {
     public function NXMAP( $caller, $line ) {
         $ip = $caller->ip;
         $port = $caller->port;
-        if( !array_key_exists("$ip:$port", $this->gathers) ) return;
+        $key = "$ip:$port";
+        if( !array_key_exists($key , $this->gathers) ) return;
 
-        if( $this->gathers["$ip:$port"]->gather_timeout ) {
-            $this->timeout( "key" );
+        if( $this->gathers[$key]->gather_timeout ) {
+            $this->timeout( $key );
         }
 
-        $result = $this->gathers["$ip:$port"]->nextmap();
+        $result = $this->gathers[$key]->nextmap();
         if( $result != false ) {
+
             $this->send( $result, $this->chan );
         }
     }

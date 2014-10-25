@@ -148,8 +148,8 @@ Trait gather_commands{
 
             if( $gather->is_full() ) {
                 $i++;
-                $this->speak( $gather->get_info() );
-                $this->speak( $gather->id_string() . " " . $gather->game_server->get_info() );
+                //$this->speak( $gather->get_info() );
+                $this->speak( $gather->id_string() . " ~ " . $gather->game_server->get_info() );
             }
         }
 
