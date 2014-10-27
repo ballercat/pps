@@ -25,6 +25,8 @@ Trait stats {
 	/* ---------------------------------------------------------------------------------------------------------------------- */
     public function ch_join( $line ){
 	/* ---------------------------------------------------------------------------------------------------------------------- */
+        echo $line . "\n";
+
         list( $cmd, $hwid, $id, $team, $name ) = explode( " ", $line, 5 );
 
         $player = new base_player( null, $name );
@@ -64,12 +66,15 @@ Trait stats {
 
         $player->hwid = $hwid;
         $this->T->add( $name, $team, $id, $player );
+
+        echo "PC: " . $this->T->player_count() . "\n";
     }
 
 	/* ------------------------------------------------------------------------------------------------------------------- */
     public function ch_left( $line )
 	/* ------------------------------------------------------------------------------------------------------------------- */
     {
+        echo $line . "\n";
         list( $cmd, $id, $team, $name ) = explode( " ", $line, 4 );
         
         $p_id = $this->T->left( $name );
@@ -78,6 +83,8 @@ Trait stats {
 
             $this->T->ps[$key]->dominated[$p_id] = 0;
         }
+
+        echo "PC: " . $this->T->player_count() . " \n";
 
         if( $this->T->player_count() == 0 ) {
 
