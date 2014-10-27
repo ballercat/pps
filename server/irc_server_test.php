@@ -17,7 +17,7 @@ Trait irc_server_test {
                 return;
             }
 
-            $this->current_gather = new gather_man( -1, $game_server );
+            $this->current_gather = new gather_man( $this->pps->get_max_gather_id()+1, $game_server );
         }
 
         //$tg = new gather_man( 0, $game_server );

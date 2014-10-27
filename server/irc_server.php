@@ -20,13 +20,13 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
  .
 */
 
+require( ABS_PATH . '/gather/irc_utility.php');
 require( ABS_PATH . '/gather/gather.php' );
 require( ABS_PATH . '/gather/gather_control.php' );
 require( ABS_PATH . '/gather/gather_commands.php');
 require( ABS_PATH . '/gather/irc_commands.php');
 require( ABS_PATH . '/gather/admin_commands.php');
 require( 'irc_server_test.php' );
-require( ABS_PATH . '/gather/irc_utility.php');
 require( ABS_PATH . '/gather/qnet_users.php');
 
 define( 'SERVER_TYPE_IRC',  1 );
@@ -71,7 +71,7 @@ class irc_server extends ppsserver {
 
     public $admins;
 
-    public $top_voice = 0.1;
+    public $top_voice = 15;
 
     public function __construct($ip, $port, $nick, $channel) 
     {
@@ -154,6 +154,7 @@ class irc_server extends ppsserver {
         $this->send( MCOLOR ." ~ ". $data , $channel );
     }
 
+    public function highlight( $text ) { return TEAL . $text . MCOLOR; }
     public function set_error( $text ) { $this->error_string = $text; }
     public function get_error_string() { return $this->error_string; }
 

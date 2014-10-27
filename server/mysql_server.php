@@ -32,6 +32,8 @@ class mysql_server extends ppsserver {
     private $user;
     private $db_name;
 
+    private $table = "players";
+
     public function __construct( $ip, $user, $pass, $db_name  ) {
         $this->ip       = $ip;
         $this->user     = $user;
@@ -83,11 +85,13 @@ class mysql_server extends ppsserver {
         $this->connected = true;
     }
 
+    public function set_player_table_name( $table_name ) { $this->table = $table_name; }
+
     public function prep()
     {
         $this->prep = $this->mysqli->stmt_init();
         
-        $prepare_str  = "UPDATE players SET kills=?,";
+        $prepare_str  = "UPDATE $this->table SET kills=?,";
         $prepare_str .= "deaths=?,";
         $prepare_str .= "doubles=?,";
         $prepare_str .= "triples=?,";
@@ -131,7 +135,7 @@ class mysql_server extends ppsserver {
 
     public function set_auth( $code, $auth )
     {
-        return $this->mysqli->query( "UPDATE players SET auth=\"$auth\" WHERE code=\"$code\"" );
+        return $this->mysqli->query( "UPDATE $this->table SET auth=\"$auth\" WHERE code=\"$code\"" );
     }
 
     public function get_account_users( $auth, $code ) 
@@ -141,12 +145,12 @@ class mysql_server extends ppsserver {
 
         if( !$code ) return null;
         //The user must have some real data to be able to access this info
-        $result = $this->mysqli->query( "SELECT * FROM players WHERE code=\"$code\"" );
+        $result = $this->mysqli->query( "SELECT * FROM $this->table WHERE code=\"$code\"" );
         if( $result->num_rows < 1 ) return null;
 
         $accounts = array( $result->fetch_array(MYSQLI_ASSOC) );
 
-        $result = $this->mysqli->query( "SELECT * FROM players WHERE auth=\"$auth\"" );
+        $result = $this->mysqli->query( "SELECT * FROM $this->table WHERE auth=\"$auth\"" );
         $record = $result->fetch_array( MYSQLI_ASSOC );
 
         while( $record ) {
@@ -217,7 +221,7 @@ class mysql_server extends ppsserver {
             $highlander->dominations += $player->dominations;
             $highlander->tp += $player->tp;
 
-            $this->mysqli->query( "DELETE from players WHERE code=\"$player->code\"" );
+            $this->mysqli->query( "DELETE from $this->table WHERE code=\"$player->code\"" );
         } 
 
         $text .= "into " .  $highlander->name;
@@ -238,14 +242,14 @@ class mysql_server extends ppsserver {
     public function bind_user_auth( $name, $auth, $code ) 
     {
         
-        $result = $this->mysqli->query( "SELECT name FROM players WHERE code=\"$code\"" );
+        $result = $this->mysqli->query( "SELECT name FROM $this->table WHERE code=\"$code\"" );
         if( $result ) {
 
             $record = $result->fetch_array( MYSQLI_ASSOC );
             if( count($record ) ) {
 
                 //Run a check for wheter or not the user exists already with a different HWID
-                $result = $this->mysqli->query( "SELECT name FROM players WHERE auth=\"$auth\"" );
+                $result = $this->mysqli->query( "SELECT name FROM $this->table WHERE auth=\"$auth\"" );
                 if( $result->num_rows > 1 ) {
                    return "More than one user bound to account $auth";
                 }
@@ -259,7 +263,7 @@ class mysql_server extends ppsserver {
 
     public function get_auth_stats( $auth )
     {
-        $result = $this->mysqli->query( "SELECT * FROM players WHERE auth=\"$auth\"" );
+        $result = $this->mysqli->query( "SELECT * FROM $this->table WHERE auth=\"$auth\"" );
         if( $result ) {
             $record = $result->fetch_array( MYSQLI_ASSOC );
             return $record; 
@@ -273,11 +277,11 @@ class mysql_server extends ppsserver {
         //Generate unique auth code for a player NOTE: should be possible to do with MYSQL
         do {
             $code = strtoupper( bin2hex(openssl_random_pseudo_bytes(3)) );
-            $result = $this->mysqli->query( "SELECT user_id FROM players WHERE code=\"$code\"" );
+            $result = $this->mysqli->query( "SELECT user_id FROM $this->table WHERE code=\"$code\"" );
         }while( $result && $result->num_rows );
 
         //Insert a record into players table
-        $this->mysqli->query( "INSERT INTO players(name, hwid, code) VALUES(\"$name\", \"$hwid\", \"$code\")" );
+        $this->mysqli->query( "INSERT INTO $this->table(name, hwid, code) VALUES(\"$name\", \"$hwid\", \"$code\")" );
 
         //Insert a record into accuracy table
         $this->mysqli->query( "INSERT INTO accuracy(user_id) VALUES(".$this->mysqli->insert_id.")" );
@@ -287,7 +291,8 @@ class mysql_server extends ppsserver {
 
     public function get_player( $hwid )
     {
-        $result = $this->mysqli->query( "SELECT * FROM players WHERE hwid=\"$hwid\"" );
+
+        $result = $this->mysqli->query( "SELECT * FROM $this->table WHERE hwid=\"$hwid\"" );
         if( $result ) {
             return $result->fetch_array( MYSQLI_ASSOC );
         }
@@ -372,8 +377,8 @@ class mysql_server extends ppsserver {
         $this->mysqli->query( "SET @rownum = 0;" );
         $this->mysqli->query( "SET @total = 0;" );
         $query = "SELECT $token, rating,rank, @total as total FROM(";
-        $query .= "SELECT players.$token, players.rating,@rownum := @rownum + 1 as rank,@total := @total + 1 ";
-        $query .= "FROM players ORDER BY rating DESC)`selection` ";
+        $query .= "SELECT $this->table.$token, $this->table.rating,@rownum := @rownum + 1 as rank,@total := @total + 1 ";
+        $query .= "FROM $this->table ORDER BY rating DESC)`selection` ";
         $query .= "WHERE $token = '$value';";
 
         $result = $this->mysqli->query( $query );
@@ -389,14 +394,6 @@ class mysql_server extends ppsserver {
 
     public function give_points( $user_id, $points, $type, $reason, $issuer ) 
     {
-        /*$result = $this->mysqli->query( "SELECT * FROM points WHERE user_id=$user_id AND type=\"$type\"" );
-        if( $result->num_rows > 0 ) {
-
-            $this->mysqli->query( "UPDATE points SET points=points+$points WHERE user_id=$user_id AND type=\"$type\"" );
-            return true;
-        }
-        else {*/
-
         $reason = ( $reason == null ) ? "" : $reason;
         $issuer = ( $issuer == null ) ? "" : $issuer;
 
@@ -425,6 +422,54 @@ class mysql_server extends ppsserver {
     {
         return $this->mysqli->query( "DELETE FROM points WHERE user_id=$user_id AND type=\"$type\"" );
     }
+
+    public function create_gather() 
+    {
+        $this->mysqli->query( "INSERT INTO gathers(played) VALUES(NOW())" );
+        return $this->get_max_gather_id();    
+    }
+
+    public function get_max_gather_id() 
+    {
+        $result = $this->mysqli->query( "SELECT MAX(id) as id FROM gathers" );
+        if( $result ) {
+
+            $record = $result->fetch_array( MYSQLI_ASSOC );
+            return $record['id'];
+        }
+
+        return false;
+    }
+
+    public function write_gather_winner( $gather_id, $winner )
+    {
+        $this->mysqli->query( "UPDATE SET winner=$winner WHERE id=$gather_id;" );
+    }
+
+    public function get_last_gather( $limit = 1, $id = null ) //$limit = 0 is ALL
+    {
+        $query = "SELECT * FROM gathers ";
+
+        if( $id )
+            $query .= "WHERE id=$id ";
+
+        $query .= "ORDER BY id DESC";
+
+        if( $limit )
+            $query .= " LIMIT $limit";
+
+        $result = $this->mysqli->query( $query );
+
+        return $result;
+    }
+
+    public function write_gather_map_player( $gather_id, $user_id, $team, $kills, $deaths, $caps, $map )
+    {
+        $query = "INSERT INTO gather_log(gather_id,user_id,team,kills,deaths,caps,map) ";
+        $query .= "VALUES($gather_id,$user_id,$team,$kills,$deaths,$caps,\"$map\")";
+        $this->mysqli->query( $query );
+    }
+
 }
 
 ?>

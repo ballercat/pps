@@ -49,7 +49,7 @@ Trait irc_utility {
     {
         if( $rank < 6 ) {
 
-            return BOLD . PURPLE . "[SS]";
+            return BOLD . PURPLE . "[X]";
         }
 
         $strings = array_fill(0,10, RED . "[A]");

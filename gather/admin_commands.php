@@ -77,7 +77,7 @@ Trait admin_commands {
 
         $tm = round($sec/3600, 2) . " hours";
 
-        $this->speak( "Quit called: Leaving. Uptime: $tm" );
+        $this->speak( $this->highlight("!quit") . " called: Leaving. Uptime:" . $this->highlight(" $tm") );
 
         exit(0); //note exit nicer
     }

@@ -297,6 +297,58 @@ Trait irc_commands {
 
         $this->points( $user, $args, null );
     }
+
+    function gather( $user, $args = null, $channel = null ) {
+        $limit = 1;
+        $id = null;
+        if( count($args) ){
+            switch( $args[0] ) {
+            case "--id":
+                if( count($args) < 2 ) return;
+                $id = $args[1];
+                break;
+            case "--limit":
+                if( count($args) > 1 && $args[1] < 6 && $args[1] > 0 ) {
+
+                    $limit = $args[1];
+                    break;
+                }
+                else {
+
+                    return;
+                }
+            };
+        }
+
+        $gathers = $this->pps->get_last_gather( $limit, $id );
+
+        if( !$gathers ) {
+
+            if( $id ) 
+                $this->error( "No gathers with id:$id found" );
+            else
+                $this->error( "No gathers stored..." );
+
+            return;
+        }
+
+        foreach( $gathers as $gather ) {
+
+            $text = "Gather " . $this->highlight(sprintf("%04d", $gather['id'])) ;
+            $text .= " | " . $gather['played'] . " |";
+
+            if( $gather['winner'] < 0 )
+                $text .= BOLD . BLACK . ' FAILED';
+            else if( $gather['winner'] == 0 ) 
+                $text .= " Winner: " . BOLD . "TIE";
+            else if( $gather['winner'] == 1 )
+                $text .= " Winner: " . BOLD . RED . "Alpha";
+            else if( $gather['winner'] == 2 )
+                $text .= " Winner: " . BOLD . BRAVO . "Bravo";
+
+            $this->speak( $text );
+        }
+    }
 }
 
 ?>

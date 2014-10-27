@@ -50,7 +50,7 @@ Trait gather_control{
     }
 
     function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {
-        $this->gc++;
+        $gather->game_number = $this->pps->create_gather();
         //Custom line parser for getting live soldat updates 
         $irc_copy = $this;
 

@@ -23,6 +23,11 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 
 Trait gather_commands{
     
+    function on ( $user, $args = null, $channel = null ) {
+
+        $this->warning( $this->highlight("!on") . " is not necessary. Just use " . $this->highlight("!add") );
+    }
+
     function add ( $user, $args = null ) {
 
         if( count($args) ) {
@@ -63,7 +68,7 @@ Trait gather_commands{
             
             //$this->gc++;
 
-            $this->current_gather = new gather_man( $this->gc, $game_server );
+            $this->current_gather = new gather_man( $this->pps->get_max_gather_id()+1, $game_server );
         }
 
         $result = false;

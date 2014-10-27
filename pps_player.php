@@ -231,31 +231,42 @@ class base_player{
 	
     public function update_cgr(){
         if( $this->c ){
-            $this->cgr = $this->c / $this->g ;
+
+            $this->cgr = ( $this->g ) ? $this->c / $this->g : 0;
         }else{
+
             if( $this->g ){
-            $this->cgr = 0.001; /* As soon as the player gets a cap this is set to a proper value */
+
+                $this->cgr = 0.001; /* As soon as the player gets a cap this is set to a proper value */
             }else{
-            $this->cgr = 0;
+
+                $this->cgr = 0;
             }
         }
         $this->cgr = round($this->cgr, 2);
     }
 	
-    public function update_ckr(){
+    public function update_ckr() {
+
         if( $this->c ){
+
             if( $this->k ){
-            $this->ckr = $this->c / $this->k ;
+
+                $this->ckr = ( $this->k != 0 ) ? $this->c / $this->k : 0 ;
             }else{
-            $this->ckr = $this->c ;
+
+                $this->ckr = $this->c ;
             }
         }else{
             if( $this->k ){
-            $this->ckr = 0.001; 
+
+                $this->ckr = 0.001; 
             }else{
-            $this->ckr = 0;
+
+                $this->ckr = 0;
             }
         }
+
         $this->ckr = round($this->ckr, 2);
     }
 	

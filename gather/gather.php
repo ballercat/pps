@@ -48,6 +48,7 @@ require './pps_teams.php';
     define( 'MCOLOR', GREY );
 
 class gather_man {
+    Use irc_utility;
 
     //Data
         public $pc;
@@ -370,16 +371,16 @@ class gather_man {
         $this->shuffle_teams( 1 );
 
         //Format result
-        $result .= BOLD . RED . "Alpha Team(";
-        $result .= sprintf("%05.2f", $this->alpha->average_rating() ) . "): ";
+        $result .= RED . "Alpha [";
+        $result .= sprintf("%05.2f", $this->alpha->average_rating() ) . "] = ";
         foreach( $this->alpha->p as $p ) {
 
             $result .= sprintf("%-9s ", $p);
         }
         $result .= "\n";
 
-        $result .= BOLD . BLUE . "Bravo Team(";
-        $result .= sprintf("%05.2f", $this->bravo->average_rating() ) . "): ";
+        $result .= BLUE . "Bravo [";
+        $result .= sprintf("%05.2f", $this->bravo->average_rating() ) . "] = ";
         foreach( $this->bravo->p as $p ) {
 
             $result .= sprintf("%-9s ", $p);
@@ -432,7 +433,9 @@ class gather_man {
         //'N' == has not played enough
         $total = $rank['total'];
         $prank = $rank['rank'];
-        if( $maps < 20 ) {
+        $this->player_color[$name] = $this->rank2color( $prank, $total );
+        $this->player_rank[$name] = $this->rank2string( $prank, $total );
+        /*if( $maps < 20 ) {
             
             $this->player_color[$name] = BLACK;
             $this->player_rank[$name] = BLACK . "[N]";
@@ -462,7 +465,7 @@ class gather_man {
         else if( $prank/$total > 0.3999 ) {
             $this->player_color[$name] = TEAL;
             $this->player_rank[$name] = BLACK . "[F]";
-        }
+        }*/
 
         return $this->add( $name ); 
     }

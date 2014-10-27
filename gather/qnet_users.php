@@ -54,7 +54,10 @@ Trait qnet_users
     function store_auth( $user, $auth )
     {
         if( $user ) {
+
             $this->users[$user] = $auth;
+
+            $this->voice_user( $user );
         }
 
         if( count($this->auth_array) ) {
@@ -65,8 +68,8 @@ Trait qnet_users
         }
 
         if( !count($this->auth_array) && $this->init ) {
+
             $this->send( "Done", $this->chan );
-            $this->voice_adjust();
             $this->init = false;
         }
     }
@@ -75,6 +78,31 @@ Trait qnet_users
     {
         $result = $this->pps->bind_user_auth( $user, $account, $code );
         $this->send($result, $user);
+
+        $this->voice_user( $user );
+    }
+
+    function voice_user ( $user )  {
+
+        if( !$this->users[$user] ) return false;
+
+        $auth = $this->users[$user];
+
+        $auth_stats = $this->pps->get_auth_stats( $auth );
+        if( $auth_stats ) {
+            
+            $rank = $this->pps->get_player_rank( $auth_stats['name'] );
+            $perc = $this->rank_percentile( $rank['rank'], $rank['total'] );
+            if( $perc < $this->top_voice ) {
+
+                $this->send( "MODE " . $this->chan . " +v $user\n", null );
+            }
+            else {
+                $this->send( "MODE " . $this->chan . " -v $user\n", null );
+            }
+        }
+
+        return false;
     }
 
     function voice_adjust() {
@@ -85,23 +113,8 @@ Trait qnet_users
         }
 
         foreach( $this->users as $user => $auth ) {
-
-            if( $auth ) {
-                
-                $auth_stats = $this->pps->get_auth_stats( $auth );
-                if( $auth_stats ) {
-                    
-                    $rank = $this->pps->get_player_rank( $auth_stats['name'] );
-                    $perc = $this->rank_percentile( $rank['rank'], $rank['total'] );
-                    if( $perc < $this->top_voice ) {
-
-                        $this->send( "MODE " . $this->chan . " +v $user\n", null );
-                    }
-                    else {
-                        $this->send( "MODE " . $this->chan . " -v $user\n", null );
-                    }
-                }
-            }
+            
+            $this->voice_user( $user );
         }
     }
 }

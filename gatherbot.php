@@ -57,6 +57,7 @@ class mock_pps {
     public function add_mysql_server( $ip, $user, $pass, $db )
     {
         $this->database = new mysql_server( $ip, $user, $pass, $db );
+        $this->database->set_player_table_name( "gather_players" );
     }
 
     public function add_game_server( $ip, $port, $adminlog ) {
@@ -249,6 +250,43 @@ class mock_pps {
         $this->database->connect();
         $this->database->erase_points( $user_id, $type );
         $this->database->disconnect();
+    }
+
+    public function get_max_gather_id()
+    {
+        $this->database->connect( false );
+        $id = $this->database->get_max_gather_id();
+        $this->database->disconnect();
+        return $id;
+    }
+
+    public function create_gather() 
+    {
+        $this->database->connect( false );
+        $id = $this->database->create_gather();
+        $this->database->disconnect();
+        return $id;
+    }
+
+    public function get_last_gather( $limit = 1, $id = null )
+    {
+        $this->database->connect( false );
+        $result = $this->database->get_last_gather( $limit, $id );
+        $this->database->disconnect();
+
+        if( $result ) {
+            $gathers = array();
+            $gather = $result->fetch_array( MYSQLI_ASSOC );
+            while( $gather ) {
+
+                $gathers[$gather['id']] = $gather;
+                $gather = $result->fetch_array( MYSQLI_ASSOC );
+            }
+
+            return $gathers;
+        }
+
+        return false;
     }
 }
 
