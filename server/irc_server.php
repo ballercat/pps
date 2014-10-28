@@ -211,7 +211,7 @@ class irc_server extends ppsserver {
         return true;
     }
 
-    public function parse_buffer() 
+   public function parse_buffer() 
     {
         $lines = explode( "\r\n", $this->buffer );
         foreach( $lines as $line ) 

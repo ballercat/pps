@@ -162,11 +162,11 @@ class teams_container{
     public function clear_leavers() {
 
         //Remove leavers from main player list
-        foreach( $this->alpha_leavers->p as $key ) {
+        while( list($name, $key) = each($this->alpha_leavers->p) ) {
 
             $this->remove( $key );
         }
-        foreach( $this->bravo_leavers->p as $key ) {
+        while( list($name, $key) = each($this->bravo_leavers->p) ) {
             
             $this->remove( $key );
         } 
@@ -313,6 +313,9 @@ class teams_container{
 
                 $this->bravo_leavers->add( $player );
             }
+        } else {
+
+            $this->remove( $player );
         }
     }
 
@@ -320,17 +323,20 @@ class teams_container{
         $player = $this->get_player_with_name( $name );
 
         if( !$player ) return false; //we are done here
+
+        $player_id = $player->p_id;
+
         if( !$player->team ) {
 
             $this->remove( $name );
-            return false;
+            return $player_id;
         }
         if( $player->team === $this->spec ) {
+
             $this->remove( $name );
-            return false;
+            return $player_id;
         }
 
-        $player_id = $player->p_id;
         $exit_time = time();
          
         if( $player->full_map( $exit_time ) ) {

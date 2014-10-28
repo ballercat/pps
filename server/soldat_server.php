@@ -174,6 +174,7 @@ class soldat_server extends ppsserver {
     public function parse_line( $line ) {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
         $cmd = substr( $line, 0, 5 );
+        echo "$line\n";
         if(method_exists( 'soldat_server', $cmd) ) {
             $this->$cmd( $line );
             return;
