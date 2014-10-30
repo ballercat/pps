@@ -310,7 +310,7 @@ exit(0);*/
 }
 
 $ip = gethostbyname("irc.quakenet.org");
-$pps->add_chat_server( $ip, "6667", "HenryVIII", "#soldat.na" );
+$pps->add_chat_server( $ip, "6667", GATHERBOT_NICK, GATHERBOT_CHAN );
 
 //test_gather( $pps, "192.210.137.129" );
 //test( $pps, $ip );
