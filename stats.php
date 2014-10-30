@@ -31,9 +31,7 @@ Trait stats {
 
         $player = new base_player( null, $name );
 
-        if( !$this->db->is_connected() ) {
-            $this->db->connect();
-        }
+        $this->db->bind( "$this->ip:$this->port" );
 
         if( !$this->T->is_playing( $name ) ){
             /* Add a new player */
@@ -74,7 +72,6 @@ Trait stats {
     public function ch_left( $line )
 	/* ------------------------------------------------------------------------------------------------------------------- */
     {
-        echo $line . "\n";
         list( $cmd, $id, $team, $name ) = explode( " ", $line, 4 );
         
         $p_id = $this->T->left( $name );
@@ -88,7 +85,7 @@ Trait stats {
 
         if( $this->T->player_count() == 0 ) {
 
-            $this->db->disconnect();
+            $this->db->release( "$this->ip:$this->port" );
         }
 
     }
@@ -270,7 +267,8 @@ Trait stats {
         $this->T->clear_leavers(); 
 
         if( $this->T->player_count() == 0 ) {
-            $this->db->disconnect();
+
+            $this->db->release( "$this->ip:$this->port" );
         }
 
         return $winner;

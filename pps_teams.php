@@ -270,6 +270,7 @@ class teams_container{
     
     public function remove($name, $team = null){
         
+        debug_print_backtrace(0,1);
         if( !isset($name) ) return;
         
         $player = $this->get_player_with_name( $name );

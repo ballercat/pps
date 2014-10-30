@@ -289,6 +289,16 @@ class pps{
     {
         return $this->db->get_player_rank( $name, $user_id, $code, $auth, $hwid );
     }
+
+    public function bind_db( $key )
+    {
+        $this->db->bind( $key );
+    }
+
+    public function release_db( $key )
+    {
+        $this->db->release( $key );
+    }
 }
 
 $test = new pps( $SERVER_LIST );

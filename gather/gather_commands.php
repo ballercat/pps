@@ -89,7 +89,7 @@ Trait gather_commands{
         if( $this->current_gather->is_full() ) {
             
             //Start gather
-            $this->start_gather( $this->current_gather, 4 );
+            $this->start_gather( $this->current_gather, 0, $this->gather_to_sec );
             $this->current_gather = null;
         }
     }

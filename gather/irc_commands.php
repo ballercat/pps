@@ -44,6 +44,20 @@ Trait irc_commands {
         }
 
         $this->speak( $result );
+
+        if( $this->admin_access( $user ) ) {
+
+            $result = "Admin commands: ";
+
+            $adm_cmd_list = get_class_methods( 'admin_commands' );
+            foreach( $adm_cmd_list as $cmd ) {
+
+                $result .= "!" . $cmd . " ";
+            }
+
+            $this->speak( $this->highlight($result) );
+        }
+
     }
 
     public function cmds( $user, $line = null, $channel = null ) { $this->commands($user); }
@@ -188,6 +202,14 @@ Trait irc_commands {
     }
 
     public function rank( $user, $args = null ) {
+
+        if( count($args) && $args[0] == '-u' ) {
+
+            if( count($args) != 2 ) return;
+
+            $user = $args[1];
+        }
+
         if( !$this->user_access($user) ) {
 
             $this->error( $this->get_error_string(), $this->chan );

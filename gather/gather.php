@@ -47,6 +47,8 @@ require './pps_teams.php';
     //define( 'MCOLOR', ORANGE );
     define( 'MCOLOR', GREY );
 
+    define( 'UNRATED', ORANGE );
+
 class gather_man {
     Use irc_utility;
 
@@ -476,8 +478,8 @@ class gather_man {
         if( $this->is_added( $name ) ) return null;
 
         if( !array_key_exists( $name, $this->player_rank ) ) {
-            $this->player_color[$name] = LGREY;
-            $this->player_rank[$name] = LGREY . "[E]";
+            $this->player_color[$name] = UNRATED;
+            $this->player_rank[$name] = UNRATED . "[E]";
         }
 
         $this->players[] = $name;
@@ -513,14 +515,7 @@ class gather_man {
 
     public function nextmap() 
     {
-        //if( $this->game_pc != 6 ) return false;
-
-
-/*        if( $this->game_alpha_score != 10 && $this->game_bravo_score != 10 ) {
-            if( $timer < 300 ) {
-                return false;
-            } 
-}*/
+  
         $timer = time() - $this->game_map_timer;
 
         $result = false;
@@ -549,7 +544,6 @@ class gather_man {
     }
 
     public function player_joined( $hwid = null) {
-//        debug_print_backtrace( 0, 1 ); 
         $this->game_pc++;
 
         if( $hwid == null ) return;

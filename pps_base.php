@@ -83,6 +83,9 @@ class base_stats{
                         $hwid = $refresh['player'][$i]['hwid'];
                         $player = null;
 
+                        //Calling this with same key more than once has no side effects
+                        $this->db->bind( "$this->ip:$this->port" );
+
                         $record = $this->db->get_player( $hwid );
 
                         if( $record ) {

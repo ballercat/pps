@@ -51,6 +51,11 @@ Trait qnet_users
         $this->send( "WHOIS $name", "Q" );
     }
 
+    function store_op( $auth, $admin )
+    {
+        $this->admins[$auth] = $admin;
+    }
+
     function store_auth( $user, $auth )
     {
         if( $user ) {

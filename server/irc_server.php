@@ -64,7 +64,9 @@ class irc_server extends ppsserver {
     public $gathers;
     public $gc;
     public $current_gather = null;
-    
+
+    public $gather_to_sec = 320;
+
     public $init = false;
 
     public $users;
@@ -86,22 +88,23 @@ class irc_server extends ppsserver {
         $this->uptime = time();
 
         $this->users = array();
-        $this->admins = array( "]{ing" => "astr" );
+        $this->admins = array( );
     }
 
     public function admin_access( $user ) 
     {
+        if( !array_key_exists( $user, $this->users ) ) {
+
+            $this->set_error( "$user is not a user in system. Admins must be authed" );
+            return false;
+        }
         if( !array_key_exists( $user, $this->admins ) ) {
 
             $this->set_error( "$user is not an admin" );
             return false;
         }
-        if( !array_key_exists( $user, $this->users ) ) {
 
-            $this->set_error( "$user is not a user in system" );
-            return false;
-        }
-        if( $this->users[$user] == $this->admins[$user] ) return true;
+        if( $this->admins[$user] ) return true;
 
         $this->set_error( "Admin access for $user is denied" );
 
@@ -248,6 +251,7 @@ class irc_server extends ppsserver {
 
 
         if( substr($line, 0, 3) === ":Q!" ) {
+            
             $this->Q_respond( $cmd, $args );
             return;
         }
@@ -259,10 +263,17 @@ class irc_server extends ppsserver {
             $n_nick = substr($channel, 1);
 
             if( array_key_exists($u, $this->users) ) {
+
                 $this->users[$n_nick] = $this->users[$u];
                 unset( $this->users[$u] );
             }
             
+            if( array_key_exists($u, $this->admins) && $this->admins[$u] ) {
+
+                $this->admins[$n_nick] = true;
+                unset( $this->admins[$u] );
+            }
+
             foreach( $this->gathers as $gather ) {
 
                 $result = $gather->nickchange( $u, $n_nick );
@@ -288,6 +299,8 @@ class irc_server extends ppsserver {
 
             $ut = explode( "!", $useragent );
             $u = substr( $ut[0], 1 );
+
+            unset( $this->admins[$u] );
 
             $this->del( $u, null );
 
@@ -316,6 +329,17 @@ class irc_server extends ppsserver {
 
             return;
         }
+        else if( $method == "MODE" ) {
+
+            if( $cmd == '+o' ) {
+
+                $this->admins[$args] = true;
+            }
+            else if( $cmd == '-o' ) {
+
+                $this->admins[$args] = false;
+            }
+        }
         //Check for userlist
         else if( $cmd == "=" ) {
             //Quakenets names list line looks something like this
@@ -330,8 +354,14 @@ class irc_server extends ppsserver {
 
             foreach( $users as $key => $user ) {
 
-                $user = ltrim( $user, '@' );
                 $user = ltrim( $user, '+' );
+
+                if( $user[0] == '@' ) {
+
+                    $this->admins[ ltrim($user,'@') ] = true;
+                }
+
+                $user = ltrim( $user, '@' );
 
                 if( $user == $this->nick ) continue;
                 if( $user == 'Q' || $user == 'S' || $user == 'D' ) continue;

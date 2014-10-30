@@ -197,7 +197,7 @@ class base_player{
     }
 	
     public function full_map( $tm ) {
-        if( ($tm - $this->map_timer) > 10 ) {
+        if( ($tm - $this->map_timer) > PPS_FULL_MAP_TIME ) {
             return true;
         } 
 

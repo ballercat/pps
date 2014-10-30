@@ -262,7 +262,7 @@ class soldat_server extends ppsserver {
             if( $P->sigma != 8.3 && $P->mu != 25 )
                 $this->private_message( $P->p_id, "Rating: " . round($P->rating,2) );
             else
-                $this->private_message( $P->p_id, "Not yet rated. No full games played" );
+                $this->private_message( $P->p_id, "Not yet rated. No full games played(" . "full map=" . PPS_FULL_MAP_TIME ."s)" );
         }
     }
 

@@ -32,6 +32,7 @@ class mysql_server extends ppsserver {
     private $user;
     private $db_name;
 
+    private $binds;
     private $table = "players";
 
     public function __construct( $ip, $user, $pass, $db_name  ) {
@@ -39,6 +40,7 @@ class mysql_server extends ppsserver {
         $this->user     = $user;
         $this->pass     = $pass;
         $this->db_name  = $db_name;
+        $this->binds    = array();
     }
 
     public function __destruct() 
@@ -50,8 +52,25 @@ class mysql_server extends ppsserver {
         }
     }
 
+    // Bind(to) : a sort of referense counting for the connection
+    // Bind(to) outside key is sent in for a server 
+    public function bind( $key ) 
+    {
+        $this->binds[$key] = true;
+    }
+
+    public function release( $key )
+    {
+        unset( $this->binds[$key] );
+
+        if( !count($this->binds) ) {
+            $this->disconnect();
+        }
+    }
+
     public function disconnect() 
     {
+        //debug_print_backtrace( 0, 2 );
         if( $this->mysqli ) {
 
             if( $this->prep ) 

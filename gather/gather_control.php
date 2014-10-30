@@ -85,6 +85,7 @@ Trait gather_control{
         if( $tm_min || $tm_sec ) {
             $gather->game_server->set_timer( $tm_min * 60 + $tm_sec, "$ip:$port" );
             $gather->set_timeout( $tm_min * 60 + $tm_sec );
+            $this->speak( "Timeout " . ($tm_min * 60 + $tm_sec) . "sec" );
         }
 
         $this->gathers["$ip:$port"] = $gather;

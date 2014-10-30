@@ -84,7 +84,11 @@ Trait admin_commands {
 
     public function ls ( $user, $args = null, $channel ) {
         
-        if( $channel != $this->nick ) return;
+        if( !$this->admin_access($user) ) {
+
+            $this->error( $this->error_string );
+            return;
+        }
 
         exec( "ps aux | grep php", $output );
 
@@ -106,6 +110,28 @@ Trait admin_commands {
         $this->top_voice = $args[0]; 
         $this->voice_adjust();
     }
+
+    function set_timeout( $user, $args = null, $channel = null ) {
+        if( !$this->admin_access($user) ) return;
+        if( !count($args) ) return;
+        if( !is_numeric($args[0]) ) return;
+
+        $this->gather_to_sec = $args[0];
+    }
+
+    function list_ops( $user, $args = null, $channel = null ) {
+
+        $result = "Admins: ";
+        foreach( $this->admins as $name => $admin ) {
+            if( $admin ) {
+
+                $result .= $name . " ";
+            }
+        }
+
+        $this->speak( $result );
+    }
+
 }
 
 ?>
