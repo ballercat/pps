@@ -119,7 +119,7 @@ class gather_man {
     public function is_active() { return $this->game_active; }
 
     public function set_timeout( $timeout ) {
-        $this->gather_timeout = $this->game_timer + $timeout; 
+        $this->gather_timeout = time() + $timeout; 
     }
 
     public function timeout( $player_count ) {

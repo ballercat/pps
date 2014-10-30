@@ -31,7 +31,7 @@ Trait stats {
 
         $player = new base_player( null, $name );
 
-        $this->db->bind( "$this->ip:$this->port" );
+        $this->db->bind( $this->server_key );
 
         if( !$this->T->is_playing( $name ) ){
             /* Add a new player */
@@ -85,7 +85,7 @@ Trait stats {
 
         if( $this->T->player_count() == 0 ) {
 
-            $this->db->release( "$this->ip:$this->port" );
+            $this->db->release( $this->server_key );
         }
 
     }
@@ -268,7 +268,7 @@ Trait stats {
 
         if( $this->T->player_count() == 0 ) {
 
-            $this->db->release( "$this->ip:$this->port" );
+            $this->db->release( $this->server_key );
         }
 
         return $winner;

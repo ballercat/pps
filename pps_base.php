@@ -48,7 +48,8 @@ class base_stats{
     private $left_count;
 
     public $limit; //Cap limit of the game
-    
+
+    public $server_key;    
 	/* ---------------------------------------------------------------------------------------------------------------------- */
     public function __construct( &$database, &$server, $refresh = null ){
 	/* ---------------------------------------------------------------------------------------------------------------------- */    
@@ -69,6 +70,8 @@ class base_stats{
 
             $this->map_timer = time();
             
+            $this->server_key = "$server->ip:$server->port"; 
+
             $this->pc = 0;
             if( isset( $refresh ) ){
                 $this->limit = $refresh['limit'];
