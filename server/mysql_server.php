@@ -56,6 +56,11 @@ class mysql_server extends ppsserver {
     // Bind(to) outside key is sent in for a server 
     public function bind( $key ) 
     {
+        if( !count($this->binds) ) {
+
+            $this->connect();
+        }
+
         $this->binds[$key] = true;
     }
 
@@ -64,6 +69,7 @@ class mysql_server extends ppsserver {
         unset( $this->binds[$key] );
 
         if( !count($this->binds) ) {
+
             $this->disconnect();
         }
     }
