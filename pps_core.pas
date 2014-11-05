@@ -639,14 +639,6 @@ begin
         begin
             pps_connected := true;
         end
-    else if Text = '/gatheron' then
-        begin
-            gather_mode := true;
-        end
-    else if Text = '/gatheroff' then
-        begin
-            gather_mode := false;
-        end
     else if(GetPiece(Text,' ',0) = '/pvm') then
         begin
             PrivateMessage( StrToInt(GetPiece(Text, ' ', 1)), Copy(Text,9,120) );

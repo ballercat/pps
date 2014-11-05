@@ -24,11 +24,12 @@ Trait irc_commands {
 
     public function help( $user, $line = null, $channel = null )
     {
-        $this->speak( "Ranked stats gather. use !cmds for the list of commands. Try !<cmd> --help" );
+        $this->speak( "Ranked stats gather. use !cmds for the list of commands. Try !<cmd> --help " . $this->highlight("NOTE") . ": only some commands have help info" );
     }
 
     public function commands( $user, $line = null, $channel = null )
     {
+
         $irc_cmd_list = get_class_methods( 'irc_commands' );
         $gather_cmd_list = get_class_methods( 'gather_commands' );
 
@@ -57,7 +58,6 @@ Trait irc_commands {
 
             $this->speak( $this->highlight($result) );
         }
-
     }
 
     public function cmds( $user, $line = null, $channel = null ) { $this->commands($user); }
@@ -320,7 +320,7 @@ Trait irc_commands {
         $this->points( $user, $args, null );
     }
 
-    function gather( $user, $args = null, $channel = null ) {
+    function games( $user, $args = null, $channel = null ) {
         $limit = 1;
         $id = null;
         if( count($args) ){
@@ -371,6 +371,23 @@ Trait irc_commands {
             $this->speak( $text );
         }
     }
+
+    function spec( $user, $args = null, $channel = null ) {
+
+        if( !$args || count($args) < 1 ) return;
+
+        foreach( $this->gathers as $gather ) {
+
+            if( $gather->game_number == $args[0] ) {
+
+                $this->speak( $gather->get_server_info() , $user );
+                return;
+            }
+        }        
+
+        $this->speak( "Could not find server #" . $args[0], $user );
+    }
+
 }
 
 ?>

@@ -49,6 +49,28 @@ Trait gather_control{
         return false;
     }
 
+    function init_gather( $region )
+    {
+        if( $this->current_gather === null ) {
+
+            $game_server = $this->pps->request_game_server( $region );
+
+            if( $game_server == null ) {
+
+                $this->error( "No available $region game servers" );
+            }
+
+            $this->current_gather = new gather_man( $this->pps->get_max_gather_id()+1, $game_server );
+            return true;
+        } 
+        else {
+
+            $this->speak( $this->current_gather->get_info() );
+        }
+
+        return false;
+    }
+
     function start_gather( $gather, $tm_min = 0, $tm_sec = 0 ) {
         $gather->game_number = $this->pps->create_gather();
         //Custom line parser for getting live soldat updates 

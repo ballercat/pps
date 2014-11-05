@@ -37,6 +37,8 @@ class gather_server extends ppsserver {
 
     public $type = SERVER_TYPE_SOLDAT;
 
+    public $region = "FF";
+
     public function __construct($irc, $ip, $port, $adminlog, $timeout = 10, $reconnect = true ){
         $this->irc = $irc;
         $this->ip = $ip;

@@ -25,10 +25,32 @@ Trait gather_commands{
     
     function on ( $user, $args = null, $channel = null ) {
 
-        $this->warning( $this->highlight("!on") . " is not necessary. Just use " . $this->highlight("!add") );
+        $this->warning( $this->highlight("!on") . " is not a command. Use " . $this->highlight("!eu") . " or " . $this->highlight("!na") . " to start a gather" );
+    }
+
+    function eu( $user, $args = null, $channel = null ) {
+
+        if( $this->init_gather( "EU" ) ) {
+
+            $this->add( $user, $args, $channel );
+        }
+    }
+
+    function na( $user, $args = null, $channel = null ) {
+
+        if( $this->init_gather( "NA" ) ) {
+
+            $this->add( $user, $args, $channel );
+        }
     }
 
     function add ( $user, $args = null ) {
+
+        if( $this->current_gather === null ) {
+
+            $this->warning( "No gathers running at the moment. Use " . $this->highlight('!na') . " or " . $this->highlight('!eu') . " to start one" );
+            return;
+        }
 
         if( count($args) ) {
             
@@ -56,7 +78,7 @@ Trait gather_commands{
 
         $auth_record = $this->pps->get_auth_stats( $this->users[$user] );
 
-        if( $this->current_gather === null ) {
+        /*if( $this->current_gather === null ) {
 
             $game_server = $this->pps->request_game_server();
 
@@ -66,10 +88,8 @@ Trait gather_commands{
                 return;
             }
             
-            //$this->gc++;
-
             $this->current_gather = new gather_man( $this->pps->get_max_gather_id()+1, $game_server );
-        }
+        }*/
 
         $result = false;
         if( $auth_record ) {

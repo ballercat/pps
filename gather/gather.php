@@ -66,6 +66,10 @@ class gather_man {
         public $gather_timeout = false;
         public $gather_started = false;
 
+        public $region = "??";
+        
+        public $server_info = null;
+
         //Rating related data
             public $rated_players;
             public $rated_player_count = 0;
@@ -91,6 +95,7 @@ class gather_man {
     public function __construct( $p_game_number, $game_server ) 
     {
         $this->game_server = $game_server;
+        $this->region = $game_server->region;
         $this->game_number = $p_game_number;
         $this->pc = 0;
         $this->rated_players = array();
@@ -167,7 +172,18 @@ class gather_man {
     }
 
     public function id_string() {
-        return (TEAL . BOLD . "[" . sprintf( "%04d", $this->game_number ) . "]");
+        return (TEAL . BOLD . "[" . sprintf( "%04d", $this->game_number ) . "][$this->region]");
+    }
+
+    public function get_server_info() {
+        if( $this->server_info ) {
+
+            return $this->server_info;
+        }
+        else {
+
+            return "No server info available!";
+        }
     }
 
     public function get_info() {
@@ -394,7 +410,8 @@ class gather_man {
         $this->game_server->send("/gatheron");
         $result .= BOLD;
         $result .= MCOLOR ." ~ Gather #$this->game_number: " . BOLD . " Tiebreaker is $this->game_tiebreaker ";
-        $result .= ":: " . UNDERLINE . "server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password";
+        $this->server_info = UNDERLINE . "server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password";
+        $result .= ":: " . $this->server_info;
         $result .= NORMAL . "\n";
 
         $this->gather_timer = time();

@@ -60,8 +60,9 @@ class mock_pps {
         $this->database->set_player_table_name( "gather_players" );
     }
 
-    public function add_game_server( $ip, $port, $adminlog ) {
+    public function add_game_server( $ip, $port, $adminlog, $region ) {
         $this->servers["$ip:$port"] = new gather_server( $this, $ip, $port, $adminlog );
+        $this->servers["$ip:$port"]->region = $region;
         $this->available_game_server["$ip:$port"] = true;
     }
 
@@ -191,16 +192,20 @@ class mock_pps {
     }
 
     //Return a server reference or null
-    public function &request_game_server() {
-        foreach( $this->available_game_server as $key => $available ) {
-            if( $available ) {
-                $this->available_game_server[$key] = false;
-                $this->servers[$key]->connect();
-                $this->sockets[$key] = $this->servers[$key]->sock;
+    public function &request_game_server( $region = null ) {
 
-                return $this->servers[$key];
+        foreach( $this->available_game_server as $key => $available ) {
+
+            if( $available && $this->servers[$key]->region == $region ) {
+
+                    $this->available_game_server[$key] = false;
+                    $this->servers[$key]->connect();
+                    $this->sockets[$key] = $this->servers[$key]->sock;
+                
+                    return $this->servers[$key];
             }
         }
+
         return $this->nullserver;
     }
 
@@ -296,7 +301,7 @@ foreach( $GATHER_LIST as $server ) {
 
     if( $server['type'] == 'soldat' ) {
 
-        $pps->add_game_server( $server['addr'], $server['port'], $server['pass'] );
+        $pps->add_game_server( $server['addr'], $server['port'], $server['pass'], $server['region'] );
     }
 
     if( $server['type'] == 'mysql' ) {
