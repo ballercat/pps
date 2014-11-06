@@ -48,7 +48,7 @@ Trait qnet_users
 
         //$this->auth_try = $name;
         $this->auth_cb = $callback;
-        $this->send( "WHOIS $name", "Q" );
+        $this->send( "WHOIS $name", "Q", 2000000 );
     }
 
     function store_op( $auth, $admin )
@@ -68,13 +68,13 @@ Trait qnet_users
         if( count($this->auth_array) ) {
 
             $name = array_pop( $this->auth_array );
+            echo "reading auth: $name\n";
             $this->whois( $name, 'store_auth' );
-
         }
 
         if( !count($this->auth_array) && $this->init ) {
 
-            $this->send( "Done", $this->chan );
+            $this->send( "Done", $this->chan);
             $this->init = false;
         }
     }

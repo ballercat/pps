@@ -139,7 +139,7 @@ class irc_server extends ppsserver {
         return "IRC server: $this->ip : $this->port ($this->chan)";
     }
 
-    public function send( $data, $channel = null )
+    public function send( $data, $channel = null, $wait = 1000000 )
     {   
         $lines = explode( "\n", $data );
         if( !$this->sock ) {
@@ -158,12 +158,14 @@ class irc_server extends ppsserver {
         }
         else {
 
+            //if( $channel == $this->chan ) $channel = "]{ing"; 
+
             foreach( $lines as $line ) {
 
                 //$interval = microtime(true) - $this->flood_check;
                 //if( $this->connected && $this->hooked && $interval < 1.0 ) {
 
-                usleep(1000000);
+                usleep($wait);
                 //}
                 if( strlen($line) ) socket_write( $this->sock, ": PRIVMSG $channel :$line\r\n" );
                 $this->flood_check = microtime(true);
@@ -252,6 +254,8 @@ class irc_server extends ppsserver {
                 $this->send( "AUTH ppsbot yak1soba", "Q@CServe.quakenet.org" );
                 socket_write( $this->sock, "JOIN $this->chan\r\n" );
                 $this->hooked = true;
+                //Sleeping here. Otherwise userlist might get segmented
+                sleep(2); 
                 return;
             }
         }
@@ -365,6 +369,7 @@ class irc_server extends ppsserver {
         else if( $cmd == "=" ) {
             //Quakenets names list line looks something like this
             //quakenet.org 353 HenryVIII = #soldat.na :User1 +VoicedUser1 @UserOP1 User2 @UserOP2 @Q
+            echo "$line\n";
 
             $dt = explode( ':', $args ); //split line into two 2nd part being the names list
 
