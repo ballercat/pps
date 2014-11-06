@@ -243,7 +243,6 @@ class irc_server extends ppsserver {
 
     public function parse_line( $line )
     {   if( !strlen($line) ) return;
-        echo "$line\n";
         if( $this->connected && !$this->hooked ) {
 
             if( $line == "ERROR :Your host is trying to (re)connect too fast -- throttled" ) return;
