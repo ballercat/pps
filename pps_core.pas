@@ -89,7 +89,6 @@ procedure PrivateMessage( player_id : byte; message : string );
         else begin
             WriteConsole( player_id, message, $FF34DBB7 );
         end;
-
     end;
 
 procedure ChangeMap( Map : string );

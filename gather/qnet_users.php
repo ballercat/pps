@@ -36,7 +36,7 @@ Trait qnet_users
         else if( $qmsg == ":User" && count($args) == 4 && $args[3] == "authed." ) {
             $user = $args[0];
             $cb = $this->auth_cb; 
-            $this->$cb( $user, null );
+            $this->$cb( $user, false );
         }
     }
 

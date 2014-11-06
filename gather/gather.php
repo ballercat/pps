@@ -116,6 +116,16 @@ class gather_man {
         return ($this->pc === 6);
     }
 
+    public function is_game_full()
+    {
+        return ($this->game_pc === 6);
+    }
+
+    public function is_game_empty()
+    {
+        return ($this->game_pc === 0);
+    }
+
     public function is_empty()
     {
         return ( $this->pc === 0 );
@@ -436,8 +446,11 @@ class gather_man {
                 $this->top_rating = $rating;
             }
 
-            if( $hwid )
+            if( $hwid ) {
+
+                echo "Player $name with $hwid added to gather!";
                 $this->player_hwid[$name] = $hwid;
+            }
 
             $this->rated_player_count++;
         }
@@ -537,11 +550,11 @@ class gather_man {
 
         $result = false;
 
-        if( !$this->game_active && $this->is_full() ) {
+        if( !$this->game_active && $this->is_game_full() ) {
 
             $this->game_active = true;
         }
-        else if( $this->game_active ){ //this becomes true after 6 ppl are playing & nextmap is called
+        else if( $this->game_active ) { //this becomes true after 6 ppl are playing & nextmap is called
 
             if( $timer > 120 ) {
 
@@ -569,6 +582,7 @@ class gather_man {
             
             if( $key == $hwid ) {
 
+                echo "$name joined\n";
                 unset( $this->player_hwid[$name] );
                 return;
             } 
@@ -578,12 +592,13 @@ class gather_man {
     public function player_left( $name ) {
         $this->game_pc--;
 
-        if( $this->game_active && $this->is_empty() ) {
+        if( $this->game_active && $this->is_game_empty() ) {
 
             $this->game_active = false;
             return $this->id_string() . " ~ Gather finished";
         }
         if( $this->game_pc == 5 || $this->game_pc == 4 ) {
+
             return $this->id_string() . " ~ Sub may be needed";
         }
 

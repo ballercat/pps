@@ -66,6 +66,15 @@ Trait irc_utility {
     function rank_N_color( ) { return BLACK; }
     function rank_N_string() { return BOLD . BLACK . "[N]" . BOLD; }
 
+    function check_help_args( $args ) 
+    {
+
+        if( $args == null ) return false;
+        if( count($args) == 1 && $args[0] == '--help' ) return true;
+
+        return false;
+    }
+
 }
 
 ?>

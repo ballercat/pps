@@ -29,12 +29,15 @@ require( ABS_PATH . '/gather/admin_commands.php');
 require( 'irc_server_test.php' );
 require( ABS_PATH . '/gather/qnet_users.php');
 
+require( ABS_PATH . '/utility/help.php' );
+
 define( 'SERVER_TYPE_IRC',  1 );
 
 class irc_server extends ppsserver {
     Use qnet_users, irc_utility, irc_server_test;
     Use irc_commands, gather_commands, admin_commands;
     Use gather_control;
+    Use help_commands;
 
     public $ip;
     public $port;
@@ -75,6 +78,8 @@ class irc_server extends ppsserver {
 
     public $top_voice = 15;
 
+    public $flood_check = 0;
+
     public function __construct($ip, $port, $nick, $channel) 
     {
         $this->ip   = $ip;
@@ -89,6 +94,8 @@ class irc_server extends ppsserver {
 
         $this->users = array();
         $this->admins = array( );
+
+        $this->flood_check = microtime(true);
     }
 
     public function admin_access( $user ) 
@@ -142,12 +149,25 @@ class irc_server extends ppsserver {
         }
 
         if( !$channel ) {
-            foreach( $lines as $line )
+
+            foreach( $lines as $line ) {
+
                 if( strlen($line) ) socket_write( $this->sock, "$line"."\r\n" );
+                $this->flood_check = microtime(true);
+            }
         }
         else {
-            foreach( $lines as $line )
+
+            foreach( $lines as $line ) {
+
+                //$interval = microtime(true) - $this->flood_check;
+                //if( $this->connected && $this->hooked && $interval < 1.0 ) {
+
+                usleep(1000000);
+                //}
                 if( strlen($line) ) socket_write( $this->sock, ": PRIVMSG $channel :$line\r\n" );
+                $this->flood_check = microtime(true);
+            }
         }
     }
 
@@ -223,11 +243,13 @@ class irc_server extends ppsserver {
 
     public function parse_line( $line )
     {   if( !strlen($line) ) return;
+        echo "$line\n";
         if( $this->connected && !$this->hooked ) {
 
             if( $line == "ERROR :Your host is trying to (re)connect too fast -- throttled" ) return;
-            if( strpos($line, "End of /MOTD command.") !== false || strpos($line, "MOTD File is missing") ) {
+            if( strpos($line, "End of /MOTD command.") !== false || strpos($line, "422 " . $this->nick) !== false ) {
 
+                echo "JOIN CHANNEL\n";
                 $this->send( "AUTH ppsbot yak1soba", "Q@CServe.quakenet.org" );
                 socket_write( $this->sock, "JOIN $this->chan\r\n" );
                 $this->hooked = true;
@@ -389,12 +411,24 @@ class irc_server extends ppsserver {
             method_exists('admin_commands', $method) ) 
         {
             
+            if( $this->check_help_args($args) ) {
+
+                if( method_exists('help_commands', 'help_' . $method) ) {
+
+                    $method = 'help_' . $method;
+                }
+                else {
+
+                    $this->speak( "No help available for " . $this->highlight($method) );
+                }
+            }
             $this->$method( $user, $args, $channel );
         }
     }
     
     public function user_rank_letter_str( $user_id )
     {
+
         $rank = $this->pps->get_player_rank( null, $user_id );
         $total = $rank['total'];
         $prank = $rank['rank'];
@@ -402,6 +436,7 @@ class irc_server extends ppsserver {
 
     //SOLDAT SERVER COMMANDS
     public function PJOIN( $caller, $line ) {
+
         $port = $caller->port;
         $ip = $caller->ip;
         if( !array_key_exists("$ip:$port", $this->gathers) ) return;
@@ -426,6 +461,7 @@ class irc_server extends ppsserver {
     }
 
     public function PLEFT( $caller, $line ) {
+
         $port = $caller->port;
         $ip = $caller->ip;
         $key = "$ip:$port";
@@ -453,6 +489,7 @@ class irc_server extends ppsserver {
     }
 
     public function PCAPF( $caller, $line ) {
+
         $ip = $caller->ip;
         $port = $caller->port;
         if( !array_key_exists("$ip:$port", $this->gathers) ) return;
@@ -461,6 +498,7 @@ class irc_server extends ppsserver {
     }
 
     public function NXMAP( $caller, $line ) {
+
         $ip = $caller->ip;
         $port = $caller->port;
         $key = "$ip:$port";
@@ -485,6 +523,12 @@ class irc_server extends ppsserver {
         $ip = $caller->ip;
         $port = $caller->port;
         $this->timeout( "$ip:$port" );
+    }
+
+    public function GSTRT( $caller, $line ) {
+    }
+
+    public function GDONE( $caller, $line ) {
     }
 }
 

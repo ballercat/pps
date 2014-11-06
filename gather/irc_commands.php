@@ -25,6 +25,8 @@ Trait irc_commands {
     public function help( $user, $line = null, $channel = null )
     {
         $this->speak( "Ranked stats gather. use !cmds for the list of commands. Try !<cmd> --help " . $this->highlight("NOTE") . ": only some commands have help info" );
+        $this->speak( "Beginner Wiki: http://github.com/ballercat/pps/wiki/Beginner-Guide-(hack-and-nudes-included)" );
+        $this->speak( "Auth notes: http://github.com/ballercat/pps/wiki/Authing-Details" );
     }
 
     public function commands( $user, $line = null, $channel = null )
@@ -36,10 +38,18 @@ Trait irc_commands {
         $result = "Commands: ";
         foreach( $irc_cmd_list as $cmd ) {
 
+            //Ignore test/beta commands
+            if( substr($cmd, 0, 1) == '_' ) continue;
+
             $result .= "!" . $cmd . " ";
         } 
 
+        $result .= "\n";
+        $result .= " ~ " . $this->highlight("Gather commands: ");
+
         foreach( $gather_cmd_list as $cmd ) {
+
+            if( substr($cmd, 0, 1) == '_' ) continue;
 
             $result .= "!" . $cmd . " ";
         }
@@ -75,7 +85,7 @@ Trait irc_commands {
     public function auth ( $user, $args = null, $channel = null ) {
         if( $channel != $this->nick ) {
 
-            $this->error( "!auth command should only be used as a PM to the bot." );
+            $this->error( "!auth command should only be used as a PM to the bot. Use !auth --help", $user );
             return;
         }
 
@@ -190,6 +200,7 @@ Trait irc_commands {
     } 
 
     public function kills( $user, $args = null, $channel = null ) {
+
         if( !$this->user_access( $user ) ) {
 
             $this->error( $this->get_error_string(), $this->chan );
@@ -314,13 +325,13 @@ Trait irc_commands {
         }
     }
 
-    function whypb( $user, $args = null, $channel = null ) {
+    function whybp( $user, $args = null, $channel = null ) {
         if( !$args ) return;
 
         $this->points( $user, $args, null );
     }
 
-    function games( $user, $args = null, $channel = null ) {
+    function _past_games( $user, $args = null, $channel = null ) {
         $limit = 1;
         $id = null;
         if( count($args) ){
@@ -374,7 +385,7 @@ Trait irc_commands {
 
     function spec( $user, $args = null, $channel = null ) {
 
-        if( !$args || count($args) < 1 ) return;
+        if( !$args || count($args) < 1 ) $this->help_spec();
 
         foreach( $this->gathers as $gather ) {
 

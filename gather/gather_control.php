@@ -107,7 +107,18 @@ Trait gather_control{
         if( $tm_min || $tm_sec ) {
             $gather->game_server->set_timer( $tm_min * 60 + $tm_sec, "$ip:$port" );
             $gather->set_timeout( $tm_min * 60 + $tm_sec );
-            $this->speak( "Timeout " . ($tm_min * 60 + $tm_sec) . "sec" );
+        }
+
+        //PM all player to show up to gather
+        foreach( $gather->alpha->p as $player ) {
+            
+            $this->speak( "$player gather #" . $gather->game_number . " has started you are on Alpha. Server: " . 
+                            $gather->get_server_info(), $player );
+        }
+        foreach( $gather->bravo->p as $player ) {
+            
+            $this->speak( "$player gather #" . $gather->game_number . " has started you are on Bravo. Server: " . 
+                            $gather->get_server_info(), $player );
         }
 
         $this->gathers["$ip:$port"] = $gather;

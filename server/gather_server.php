@@ -95,7 +95,7 @@ class gather_server extends ppsserver {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
         $refresh = $this->get_refreshx();
-        $info = $refresh['map'] . " -\t" . $refresh['timeleft'];
+        $info = sprintf("%-15s", $refresh['map']) . " " . $refresh['timeleft'];
 
         $info .= RED .  sprintf(" %02d", $refresh['team'][1]) . MCOLOR . " -" . BLUE . sprintf(" %02d", $refresh['team'][2]);
         
