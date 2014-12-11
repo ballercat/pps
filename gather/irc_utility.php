@@ -45,6 +45,17 @@ Trait irc_utility {
         return $colors[$p];
     }
 
+    function region2string( $region )
+    {
+        switch( $region )
+        {
+        case 'NA' :
+            return RED . "N" . BLUE . "A";
+        case 'EU':
+            return BLUE . "EU";
+        };
+    }
+
     function rank2string( $rank, $total ) 
     {
         if( $rank < 6 ) {
@@ -74,7 +85,6 @@ Trait irc_utility {
 
         return false;
     }
-
 }
 
 ?>

@@ -145,13 +145,58 @@ Trait irc_commands {
         $this->speak( $text, $user );
     }
 
+    function __format_player_stats( $result ) 
+    {
+        $rank = $this->pps->get_player_rank( null, $result['user_id'] );
+        
+        $tp = $result['time_played'];
+        
+        $info = $result['name'];
+
+        if( $result['maps'] > 19 ) {
+
+            $info .= $this->rank2string( $rank['rank'], $rank['total'] ) . MCOLOR;
+        }
+        else {
+
+            $info .= $this->rank_N_string() . MCOLOR;
+        }
+
+        $info .= " ~ KD : " . $result['kd'] . " ~ CG: " . $result['cg'];
+
+        $maps = ( $result['maps'] > 0 ) ? $result['maps'] : 1;
+        $info .= " ~ WIN% : " . intval($result['wins']/($maps/100)) . " ~";
+
+        if( $tp > 59 ) {
+            $info .= " Played : " . round($tp/60, 2) . "h";
+        }
+        else {
+            $info .= " Played : $tp" . "min";
+        }
+
+        return $info;
+    }
+
     public function rating ( $user, $args = null ) {
 
-        if( count($args) && $args[0] == '-u' ) {
+        if( count($args) ) { 
 
-            if( count($args) != 2 ) return;
+            switch( $args[0] ) 
+            {
+            case '-u':
+                if( count($args) < 2 ) return;
+                $user = $args[1];
+                break;
+            case '--find':
+                if( count($args) != 2 ) return;
+                
+                $users = $this->pps->find_user_regex( $args[1] );
+                foreach( $users as $stats ) {
 
-            $user = $args[1];
+                    $this->speak( $this->__format_player_stats($stats) );
+                }
+                return;
+            };
         } 
         
         if( !$this->user_access($user) ) {
@@ -214,9 +259,15 @@ Trait irc_commands {
 
     public function rank( $user, $args = null ) {
 
-        if( count($args) && $args[0] == '-u' ) {
+        if( count($args) ) { 
 
-            if( count($args) != 2 ) return;
+            switch( $args[0] ) {
+            case '-u':
+                if( count($args) != 2 ) return;
+                $user = $args[1];
+                break;
+            
+            };
 
             $user = $args[1];
         }
@@ -237,6 +288,7 @@ Trait irc_commands {
 
         $name = $auth_stats['name'];
         $result = $this->pps->get_player_rank( $name );
+
         if( $result ) {
             //$data = $this->rank2color( $result['rank'], $result['total'] );
             $data = $name; 

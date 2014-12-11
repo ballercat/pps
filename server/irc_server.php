@@ -80,9 +80,11 @@ class irc_server extends ppsserver {
 
     public $flood_check = 0;
 
+    public $bad_line = null;
+
     public function __construct($ip, $port, $nick, $channel) 
     {
-        $this->ip   = $ip;
+        $this->ip   = gethostbyname($ip);
         $this->port = $port;
         $this->nick = $nick;
         $this->chan = $channel;
@@ -173,10 +175,26 @@ class irc_server extends ppsserver {
         }
     }
 
-    public function speak( $data, $channel = null ) 
+    public function speak( $data, $channel = null, $token = '~' ) 
     {
         if( $channel == null ) $channel = $this->chan;
-        $this->send( MCOLOR ." ~ ". $data , $channel );
+
+        if( $token != '~' ) {
+
+            switch( $token ) {
+            case 'x':
+                $data = RED . BOLD . " $token " . BOLD . MCOLOR . $data;
+                break;
+            case 'o':
+                $data = GREEN . BOLD . " $token " . BOLD . MCOLOR . $data;
+                break;
+            };
+        }
+        else {
+
+            $data = BLACK . BOLD . " $token " . BOLD . MCOLOR . $data;
+        }
+        $this->send( $data, $channel );
     }
 
     public function highlight( $text ) { return TEAL . $text . MCOLOR; }
@@ -211,15 +229,30 @@ class irc_server extends ppsserver {
     }
 
     public function readbuffer( $size = 512 ) 
-    {   if( !$this->sock ) return ($this->buffer = null);
-        $this->buffer = trim( socket_read($this->sock, 512, PHP_BINARY_READ) );
+    {   if( $this->sock == null ) false;
+
+        $this->buffer = trim( socket_read($this->sock, 512, PHP_BINARY_READ) );//, " \t\0\x0B" );
         $this->parse_buffer();
+
+        return true;
     }
 
     public function PONG( $ping )
     { if( !$this->sock ) return;
         $pong = substr_replace( $ping, 'O', 1, 1);
         $this->send( $pong );
+    }
+
+    public function MODE( $mode, $name ) 
+    {
+        switch( $mode ) {
+        case "+o":
+            $this->admins[$name] = true;
+            return;
+        case "-o":
+            $this->admins[$name] = false;
+            return;
+        };
     }
 
     public function connect( $timeout = 10, $reconnect = true ) 
@@ -233,24 +266,48 @@ class irc_server extends ppsserver {
             $this->connected = true;
             return false;
         }
+
+        error_log( "IRC server connect failed: " . $this->ip . ":" . $this->port );
         return true;
     }
 
-   public function parse_buffer() 
+    public function parse_buffer() 
     {
         $lines = explode( "\r\n", $this->buffer );
-        foreach( $lines as $line ) 
+        for( $i = 0; $i < count($lines); $i++)  {
+            $line = $lines[$i];
+            /*echo "-->" . substr($line, -1) ."|". bin2hex(substr($line,-1) ) ."\n";
+            if( substr($line, 0, 4) != "PING" && substr($line,-1) != '\r' ) {
+                //bad line break
+                if( $i+1 >= count($lines) ) {
+
+                    //bad line
+                    $this->bad_line = $line;
+                    return;
+                }
+                else {
+                    $i++;
+                    $line .= $lines[$i];
+                }
+            }
+
+            if( $this->bad_line != null && $i == 0 ) {
+
+                $line = $this->bad_line . $line;
+                $this->bad_line = null;
+            }*/
             $this->parse_line( $line );
+        }
     }
 
     public function parse_line( $line )
     {   if( !strlen($line) ) return;
+//        echo "IRC:$line\n";
         if( $this->connected && !$this->hooked ) {
 
             if( $line == "ERROR :Your host is trying to (re)connect too fast -- throttled" ) return;
             if( strpos($line, "End of /MOTD command.") !== false || strpos($line, "422 " . $this->nick) !== false ) {
 
-                echo "JOIN CHANNEL\n";
                 $this->send( "AUTH ppsbot yak1soba", "Q@CServe.quakenet.org" );
                 socket_write( $this->sock, "JOIN $this->chan\r\n" );
                 $this->hooked = true;
@@ -260,7 +317,7 @@ class irc_server extends ppsserver {
             }
         }
 
-        if( substr($line, 0, 4) === "PING" ) {
+        if( substr($line, 0, 4) == "PING" ) {
             $this->PONG( $line );
             return;
         }
@@ -274,15 +331,9 @@ class irc_server extends ppsserver {
         $cmd        = (array_key_exists(3,$tokens)) ? $tokens[3] : null;
         $args       = (array_key_exists(4,$tokens)) ? $tokens[4] : null;
 
-
-        if( substr($line, 0, 3) === ":Q!" ) {
-            
-            $this->Q_respond( $cmd, $args );
-            return;
-        }
-
         //Check for nick changes
         if( $method == "NICK" ) {
+
             $ut = explode( "!", $useragent );
             $u = substr( $ut[0], 1 );
             $n_nick = substr($channel, 1);
@@ -364,12 +415,21 @@ class irc_server extends ppsserver {
 
                 $this->admins[$args] = false;
             }
+
+            return;
         }
+
+
+        if( substr($line, 0, 3) === ":Q!" ) {
+            $this->Q_respond( $cmd, $args );
+            return; 
+        }
+    
         //Check for userlist
         else if( $cmd == "=" ) {
+            
             //Quakenets names list line looks something like this
             //quakenet.org 353 HenryVIII = #soldat.na :User1 +VoicedUser1 @UserOP1 User2 @UserOP2 @Q
-            echo "$line\n";
 
             $dt = explode( ':', $args ); //split line into two 2nd part being the names list
 
@@ -397,19 +457,19 @@ class irc_server extends ppsserver {
 
             $this->init = true;
             $this->store_auth( null, null );
-        
+
             return;
         }
 
         if( $this->init ) return; 
         if( strpos($line, ":!") === false ) return;
-            
+    
         //Get vals 
         $user_tokens = explode('!', $useragent );
         $user = substr( $user_tokens[0], 1 );
         $args = array_filter( explode(' ', $args), 'strlen' );
         $method = substr( $cmd, 2 );
-        
+
         if( method_exists('gather_commands', $method) ||
             method_exists('irc_commands', $method) ||
             method_exists('admin_commands', $method) ) 
@@ -424,6 +484,7 @@ class irc_server extends ppsserver {
                 else {
 
                     $this->speak( "No help available for " . $this->highlight($method) );
+                    return;
                 }
             }
             $this->$method( $user, $args, $channel );
@@ -436,6 +497,27 @@ class irc_server extends ppsserver {
         $rank = $this->pps->get_player_rank( null, $user_id );
         $total = $rank['total'];
         $prank = $rank['rank'];
+    }
+
+    public function game_server_dc( $server_key ) 
+    {
+        //debug_print_backtrace(0,3);
+        if( array_key_exists($server_key, $this->gathers) ) {
+
+            $this->warning( "$server_key has died! Ending gather #" . $this->gathers[$server_key]->game_number );
+            $this->end_gather( $this->gathers[$server_key] );
+            return;
+        } 
+        if( $this->current_gather ) {
+
+            $c = $this->current_gather->game_server->ip . ":" . $this->current_gather->game_server->port;
+            if( $c == $server_key ) {
+
+                $this->warning( "$server_key has died! Ending gather #" . $this->current_gather->game_number );
+                $this->end_gather( $this->current_gather );
+                $this->current_gather = null;
+            }
+        }
     }
 
     //SOLDAT SERVER COMMANDS
@@ -506,6 +588,11 @@ class irc_server extends ppsserver {
         $ip = $caller->ip;
         $port = $caller->port;
         $key = "$ip:$port";
+
+        echo "Nextmap...\n";
+        $refreshx = $this->gathers[$key]->game_server->get_refreshx();
+        file_put_contents( 'refreshx.txt', serialize($refreshx) );        
+        
         if( !array_key_exists($key , $this->gathers) ) return;
 
         if( $this->gathers[$key]->gather_timeout ) {
@@ -526,6 +613,7 @@ class irc_server extends ppsserver {
         //command back to console after <seconds> with <string> suplied
         $ip = $caller->ip;
         $port = $caller->port;
+        echo "TIMER received $ip:$port\n";
         $this->timeout( "$ip:$port" );
     }
 
@@ -533,6 +621,19 @@ class irc_server extends ppsserver {
     }
 
     public function GDONE( $caller, $line ) {
+    }
+
+    public function _irc( $caller, $line ) {
+
+        $text = $caller->get_tag_string() . " " . $line;
+        $this->speak( $text );     
+    }
+
+    public function _sub( $caller, $line ) {
+
+        $text = $caller->get_tag_string() . " Sub needed! To sub type: !sub " . $caller->tag;
+        $this->speak( $text );
+        $this->speak( $caller->get_info() );
     }
 }
 
