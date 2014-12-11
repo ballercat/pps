@@ -27,7 +27,7 @@ Trait gather_control{
         ///debug_print_backtrace( 0, 1 );
 
         $refresh = $this->gathers[$key]->game_server->get_refreshx();
-        if( !$refresh ) return false;
+        if( !$refresh ) return;
 
         $result = $this->gathers[$key]->timeout( $refresh['players'] );
 
@@ -35,12 +35,12 @@ Trait gather_control{
             $this->speak( $result );
 
             //Iussue banpoints for no shows
-            /*foreach( $this->gathers[$key]->player_hwid as $name=>$hwid ) {
+            foreach( $this->gathers[$key]->player_hwid as $name=>$hwid ) {
 
                 $authr = $this->pps->get_auth_stats( $this->users[$name] );
                 $this->pps->give_player_points( $authr['user_id'], 1, "banpoint", "no show to gather #". $this->gathers[$key]->game_number , "Gatherbot" );
                 $this->warning( "$name did not show up to gather. Banpoint issued\n" );
-            }*/
+            }
 
             $this->end_gather( $this->gathers[$key] );
             return true;
@@ -54,15 +54,13 @@ Trait gather_control{
         if( $this->current_gather === null ) {
 
             $game_server = $this->pps->request_game_server( $region );
-            if( !$game_server ) {
+
+            if( $game_server == null ) {
 
                 $this->error( "No available $region game servers" );
-                return false;
             }
 
-            $game_server->gather = $this;
             $this->current_gather = new gather_man( $this->pps->get_max_gather_id()+1, $game_server );
-
             return true;
         } 
         else {
@@ -79,27 +77,11 @@ Trait gather_control{
         $irc_copy = $this;
 
         $line_parser = function ( $caller, $line  ) use ($irc_copy) {
-
             $cmd = substr( $line, 0, 5 );
             $key = "$caller->ip:$caller->port";
-
+            
             if( !array_key_exists($key, $irc_copy->gathers) ) return;
 
-            if( strpos($line, "!") ) {
-                $tokens = array_filter( explode(' !', $line, 3) );
-                print_r($tokens);
-                $user = (array_key_exists(0,$tokens)) ? $tokens[0] : null;
-                //$cmd = (array_key_exists(1,$tokens)) ? "_" . $tokens[1] : null; 
-                $txt = (array_key_exists(1,$tokens)) ? $tokens[1] : null;
-                if( $txt ) 
-                {                
-                    $tokens = array_filter( explode(' ', $txt, 2) );
-                    $cmd = (array_key_exists(0,$tokens)) ? "_" . $tokens[0] : null;
-                    $txt = (array_key_exists(1,$tokens)) ? $tokens[1] : null;
-                    $line = $user . " " . $txt;
-                }
-            }
-            
             if( method_exists('irc_server', $cmd) ) {
 
                 $irc_copy->$cmd( $caller, $line );
@@ -119,7 +101,7 @@ Trait gather_control{
         $ip = $gather->game_server->ip;
         $port = $gather->game_server->port;
 
-        $this->send( $gather->start($tm_min, $tm_sec), $this->chan );
+        $this->send( $gather->start(), $this->chan );
         $gather->game_server->set_tiebreaker( $gather->game_tiebreaker );
 
         if( $tm_min || $tm_sec ) {

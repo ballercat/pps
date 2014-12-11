@@ -30,11 +30,6 @@ Trait gather_commands{
 
     function eu( $user, $args = null, $channel = null ) {
 
-        if( $this->current_gather ) {
-
-            $this->warning( "Only one gather at a time is supported(so far)" );
-            return;
-        }
         if( $this->init_gather( "EU" ) ) {
 
             $this->add( $user, $args, $channel );
@@ -43,11 +38,6 @@ Trait gather_commands{
 
     function na( $user, $args = null, $channel = null ) {
 
-        if( $this->current_gather ) {
-
-            $this->warning( "Only one gather at a time is supported(so far)" );
-            return;
-        }
         if( $this->init_gather( "NA" ) ) {
 
             $this->add( $user, $args, $channel );
@@ -172,40 +162,29 @@ Trait gather_commands{
         }
         else {
 
-            $this->speak( "No gather pending..." );
-        }
-
-        $server_status = $this->pps->get_status();
-        foreach( $server_status as $status ) {
-
-            //This is a hack where get_status() adds a 1 character token indicating availability of the server
-            $this->speak( substr($status, 1), $this->chan, substr($status,0,1) );
+            $this->speak( "No gather pending...", $this->chan );
         }
     }
     
-    function players ( $user, $args = null ) {
+    function playing ( $user, $args = null ) {
 
         $i = 0;
-        $info = $this->pps->get_info();
-        foreach( $info as $players ) {
+        foreach( $this->gathers as $gather ) {
 
-            $this->speak( $players );
+            if( $gather->is_full() ) {
+                $i++;
+                //$this->speak( $gather->get_info() );
+                $this->speak( $gather->id_string() . " ~ " . $gather->game_server->get_info() );
+            }
+        }
+
+        if( !$i ) {
+
+            $this->speak( "No gathers being played" );
         }
     }
     
-    function sub ( $user, $args = null ) {
 
-        if( !count($args) ) return;
-        $tag = $args[0]; 
-        foreach( $this->gathers as $gather ) {
-
-            if( $gather->game_server->tag == $tag ) {
-
-                $this->speak( "You have added as a sub to gather " . $tag . ". Server info: $gather->server_info", $user );
-                $gather->game_server->private_message(0, "Sub found, $user is coming" );
-            }
-        }
-    }
 }
 
 ?>
