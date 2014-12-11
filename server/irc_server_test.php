@@ -72,7 +72,7 @@ Trait irc_server_test {
 
         }
 
-       $this->start_gather( $this->current_gather, 0, 30 );
+       $this->start_gather( $this->current_gather, 0, 45 );
 
         $this->current_gather = null;
     }

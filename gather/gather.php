@@ -24,6 +24,7 @@ require './pps_player.php';
 require './pps_teams.php';
 
 //Colors
+    define( 'WHITE', "\x030" );
     define( 'BLACK', "\x031" );
     define( 'BROWN', "\x035" );
     define( 'RED',  "\x034" );
@@ -44,8 +45,13 @@ require './pps_teams.php';
     define( 'UNDERLINE', "\x1F" );
     define( 'NORMAL' , "\x0F" );
 
+    define( 'WHITERED', "\x030,4" );
+    define( 'BLUERED', "\x032,4" );
+
+    define( 'WHITEBLUE', WHITE . ',2' );
+
     //define( 'MCOLOR', ORANGE );
-    define( 'MCOLOR', GREY );
+    define( 'MCOLOR', NORMAL . GREY );
 
     define( 'UNRATED', ORANGE );
 
@@ -82,7 +88,7 @@ class gather_man {
             public $player_rank;
 
         //Game data
-            public $game_active = false;
+            public $game_active = false;//this becomes true with $game_pc = 6 and AFTER nextmap is called
             public $game_map = "";
             public $game_pc = 0;
             public $game_timer = 0;
@@ -369,7 +375,7 @@ class gather_man {
 
     //Start a new gather game
     //Return formated string with the teams etc.,
-    public function start( )
+    public function start($tm_min, $tm_sec )
     {
         mt_srand( crc32(microtime()) );
 
@@ -421,7 +427,8 @@ class gather_man {
         $result .= BOLD;
         $result .= MCOLOR ." ~ Gather #$this->game_number: " . BOLD . " Tiebreaker is $this->game_tiebreaker ";
         $this->server_info = UNDERLINE . "server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password";
-        $result .= ":: " . $this->server_info;
+        //$result .= ":: " . $this->server_info;
+        $result .= ":: Timer is set at: " . $tm_min . "m" . $tm_sec . "s";
         $result .= NORMAL . "\n";
 
         $this->gather_timer = time();
@@ -448,7 +455,7 @@ class gather_man {
 
             if( $hwid ) {
 
-                echo "Player $name with $hwid added to gather!";
+                //echo "Player $name with $hwid added to gather!";
                 $this->player_hwid[$name] = $hwid;
             }
 
@@ -592,15 +599,19 @@ class gather_man {
     public function player_left( $name ) {
         $this->game_pc--;
 
-        if( $this->game_active && $this->is_game_empty() ) {
+        if( $this->game_active ) {
 
-            $this->game_active = false;
-            return $this->id_string() . " ~ Gather finished";
-        }
-        if( $this->game_pc == 5 || $this->game_pc == 4 ) {
+            if( $this->is_game_empty() ) {
 
-            return $this->id_string() . " ~ Sub may be needed";
+                $this->game_active = false;
+                return $this->id_string() . " ~ Gather finished";
+            }
         }
+        else if( $this->is_game_empty() ) {
+
+            return $this->timeout( 0 );
+        }
+
 
         return false;
     }
