@@ -229,10 +229,13 @@ class irc_server extends ppsserver {
     }
 
     public function readbuffer( $size = 512 ) 
-    {   if( $this->sock == null ) false;
+    {   if( $this->sock == null ) return false;
 
-        $this->buffer = trim( socket_read($this->sock, 512, PHP_BINARY_READ) );//, " \t\0\x0B" );
-        $this->parse_buffer();
+        //PHP_BINARY_READ is great but it causes events where the data read does 
+        //NOT get terminated by a \r\n. Causing parsing problems. Specificaly on 
+        //large userlist in irc channel
+        while( $this->buffer = trim( socket_read($this->sock, 512, PHP_NORMAL_READ) ) )
+            $this->parse_buffer();
 
         return true;
     }
@@ -271,11 +274,19 @@ class irc_server extends ppsserver {
         return true;
     }
 
+    public function disconnect()
+    {
+        socket_close( $this->sock );
+        $this->connected = false;
+        $this->sock = null;
+    }
+
     public function parse_buffer() 
     {
         $lines = explode( "\r\n", $this->buffer );
         for( $i = 0; $i < count($lines); $i++)  {
             $line = $lines[$i];
+            echo "      $line\n";
             /*echo "-->" . substr($line, -1) ."|". bin2hex(substr($line,-1) ) ."\n";
             if( substr($line, 0, 4) != "PING" && substr($line,-1) != '\r' ) {
                 //bad line break
@@ -455,13 +466,22 @@ class irc_server extends ppsserver {
                 $this->auth_array[] = $user;
             }
 
-            $this->init = true;
+            //Initialize with a timer, to avoid hangs on failed irc server responce. This happens 3/100 times
             $this->store_auth( null, null );
 
             return;
         }
 
-        if( $this->init ) return; 
+        if( $this->init ){
+            if( time() - $this->init > 5 ) {
+                //Give irc server 5 seconds to respond(PER USER)
+                //if not just skip to next one
+                //Skipping users causes them to be unable to add/use commands, but can be fixed with them
+                //rejoining the server.
+                $this->store_auth( null, null );
+            } 
+            return; 
+        }
         if( strpos($line, ":!") === false ) return;
     
         //Get vals 

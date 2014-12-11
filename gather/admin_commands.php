@@ -78,7 +78,8 @@ Trait admin_commands {
         $tm = round($sec/3600, 2) . " hours";
 
         $this->speak( $this->highlight("!quit") . " called: Leaving. Uptime:" . $this->highlight(" $tm") );
-
+        Sleep(2);
+        $this->pps->close_all_connections();
         exit(0); //note exit nicer
     }
 

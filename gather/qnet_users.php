@@ -58,6 +58,9 @@ Trait qnet_users
 
     function store_auth( $user, $auth )
     {
+        //Update the responce timer here.
+        $this->init = time();
+
         if( $user ) {
 
             $this->users[$user] = $auth;
