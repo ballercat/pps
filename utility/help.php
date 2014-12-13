@@ -24,7 +24,7 @@ Trait help_commands {
 
     function help_spec()
     {
-        $this->speak( "Usage: " . $this->highlight("!spec") . " <gather number>" );
+        $this->speak( "Usage: " . $this->highlight("!spec") . " <server #>" );
     }
 
     function help_auth()

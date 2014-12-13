@@ -504,6 +504,7 @@ class irc_server extends ppsserver {
             }
 
             //Initialize with a timer, to avoid hangs on failed irc server responce. This happens 3/100 times
+            $this->init = time();
             $this->store_auth( null, null );
 
             return;
@@ -516,7 +517,7 @@ class irc_server extends ppsserver {
                 //Skipping users causes them to be unable to add/use commands, but can be fixed with them
                 //rejoining the server.
                 $this->store_auth( null, null );
-            } 
+            }
             return; 
         }
         if( strpos($line, ":!") === false ) return;

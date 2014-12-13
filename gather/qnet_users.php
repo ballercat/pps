@@ -69,7 +69,8 @@ Trait qnet_users
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     {
         //Update the responce timer here.
-        $this->init = time();
+        if( $this->init )
+            $this->init = time();
 
         if( $user ) {
 
@@ -81,7 +82,6 @@ Trait qnet_users
         if( count($this->auth_array) ) {
 
             $name = array_pop( $this->auth_array );
-            echo "reading auth: $name\n";
             $this->whois( $name, 'store_auth' );
         }
 

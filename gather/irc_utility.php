@@ -60,7 +60,7 @@ Trait irc_utility {
     {
         if( $rank < 6 ) {
 
-            return BOLD . PURPLE . "[X]";
+            return BOLD . PURPLE . "[X]" . BOLD;
         }
 
         $strings = array_fill(0,10, RED . "[A]");

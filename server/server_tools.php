@@ -134,7 +134,6 @@ Trait server_tools{
     {
         foreach( $this->connected_servers as $key => $status ) {
 
-            echo "Closing: $key\n";
             $this->servers[$key]->disconnect();
         }
 

@@ -23,6 +23,8 @@ Copyright: (C) 2014 Arthur, B. aka ]{ing <whinemore@gmail.com>
 require './pps_player.php';
 require './pps_teams.php';
 
+
+
 //Colors
     define( 'WHITE', "\x030" );
     define( 'BLACK', "\x031" );
@@ -102,6 +104,8 @@ class gather_man {
             public $game_tiebreaker = "ctf_Laos";
             public $game_players = [];
 
+
+
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function __construct( $p_game_number, $game_server ) 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -122,6 +126,16 @@ class gather_man {
         $this->game_map_timer = time();
         $this->gather_timer = time();
         $this->rounds = array();
+        $this->tiebreakers = [   
+            'ctf_Ash', 'ctf_Cobra',
+            'ctf_Death', 'ctf_Division',
+            'ctf_Dropdown', 'ctf_Guardian',
+            'ctf_IceBeam', 'ctf_Lanubya',
+            'ctf_Laos', 'ctf_MFM',
+            'ctf_Nuubia', 'ctf_Raspberry',
+            'ctf_Snakebite', 'ctf_Steel',
+            'ctf_Viet', 'ctf_Voland' 
+        ];
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -229,7 +243,7 @@ class gather_man {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function id_string() {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-        return (TEAL . BOLD . "[" . sprintf( "%04d", $this->game_number ) . "][$this->region]");
+        return (TEAL . BOLD . "[" . sprintf( "%04d", $this->game_number ) . "][$this->region]" . BOLD);
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -251,7 +265,7 @@ class gather_man {
 
         $result =  $this->id_string() . " ";
 
-        $result .= BOLD . MCOLOR. "~ ";
+        $result .= MCOLOR . BOLD . "~ " . BOLD;
 
         if( $this->gather_started ) {
             $result .= TEAL. BOLD . sprintf("CTF:\t%02d/06", $this->game_pc ) . BOLD ;
@@ -269,7 +283,7 @@ class gather_man {
                         $result .= $this->player_color[ $this->players[$i] ];
                         $result .= $this->players[$i];
 
-                        $result .= BOLD;
+                        //$result .= BOLD;
                         $result .= $this->player_rank[ $this->players[$i] ];
                         $result .= BOLD;
                         $result .= MCOLOR;
@@ -448,7 +462,6 @@ class gather_man {
             foreach( $rated as $name => $rating ) {
                 //Make the picks
                 $team = $this->rating_balanced_pick( $alpha, $bravo, $rating );
-                echo "Pick $name $team\n";
                 $this->pick_player_name( $team, $name );
             }
         } else {
@@ -480,6 +493,7 @@ class gather_man {
         $this->game_server->send("/password $this->game_password");
         $this->game_server->send("/gatheron");
         $result .= BOLD;
+        $this->game_tiebreaker = $this->tiebreakers[ mt_rand(0, count($this->tiebreakers)-1) ];
         $result .= MCOLOR ." ~ Gather #$this->game_number: " . BOLD . " Tiebreaker is $this->game_tiebreaker ";
         $this->server_info = UNDERLINE . "server: soldat://". $this->game_server->ip . ":". $this->game_server->port . "/$this->game_password";
         //$result .= ":: " . $this->server_info;
