@@ -81,7 +81,19 @@ class pps_gather {
     }
 
 }
-
+/*
+$handle = fopen(ABS_PATH . "/refreshx.txt", 'r');
+$content = fread($handle, filesize(ABS_PATH . "/refreshx.txt"));
+fclose($handle);
+$lines = explode('\n', $content);
+echo $content;
+print_r($lines);
+exit(0);
+foreach( $lines as $line ) {
+    $refresh = unserialize($line);
+    print_r($refresh);
+}
+exit(0);*/
 $pps = new pps_gather( $GATHER_LIST );
 $pps->connect();
 $pps->monitor();

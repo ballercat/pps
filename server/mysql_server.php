@@ -532,13 +532,13 @@ class mysql_server extends ppsserver {
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    public function write_gather_map_player( $gather_id, $user_id, $team, $kills, $deaths, $caps, $map )
+   // public function write_gather_map_player( $gather_id, $user_id, $team, $kills, $deaths, $caps, $map )
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
-    {
+    /*{
         $query = "INSERT INTO gather_log(gather_id,user_id,team,kills,deaths,caps,map) ";
         $query .= "VALUES($gather_id,$user_id,$team,$kills,$deaths,$caps,\"$map\")";
         $this->mysqli->query( $query );
-    }
+    }*/
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function get_player_regex( $regex ) 
@@ -560,6 +560,29 @@ class mysql_server extends ppsserver {
         return $record;
     }
     
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+    public function write_refresh( $gather_id, $region, $refresh )
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+    {
+        $query = "INSERT INTO gather_log(gather_id,region,refresh) ";
+        $query .= "VALUES($gather_id,'$region','$refresh')";
+        $this->mysqli->query( $query );
+    }
+
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+    public function get_refresh( $gather_id ) 
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+    {
+        $query = "SELECT * FROM gather_log WHERE gather_id=$gather_id";
+        $result = $this->mysqli->query( $query );
+        $records = [$result->fetch_array( MYSQLI_ASSOC )];
+        while( $refresh = $result->fetch_array(MYSQLI_ASSOC) ) {
+
+            $records[] = $refresh;
+        }
+
+        return $records;
+    }
 }
 
 ?>

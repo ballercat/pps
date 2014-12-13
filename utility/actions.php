@@ -152,6 +152,13 @@ Trait actions {
         if( $this->gather_mode ) $this->database->disconnect();
         return $result;
     }
+
+    function write_refresh($gather_id, $region, $refresh) 
+    {
+        if( $this->gather_mode ) $this->database->connect();
+        $this->database->write_refresh( $gather_id, $region, $refresh );
+        if( $this->gather_mode ) $this->database->disconnect();
+    }
 }
 
 ?>
