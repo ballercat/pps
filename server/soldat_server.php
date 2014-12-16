@@ -35,6 +35,8 @@ class soldat_server extends ppsserver {
     public $refresh;
     public $m_timeout;
 
+    public $gather = null;
+
     public $type = SERVER_TYPE_SOLDAT;
 
     public function __construct($pps, $ip, $port, $adminlog, $timeout = 10, $reconnect = true ){
@@ -45,11 +47,21 @@ class soldat_server extends ppsserver {
         $this->m_timeout = $timeout;
         $this->m_retry = $reconnect;   
         
-        $this->State = 0;
-        
         $this->join_try = null;
         
-        $this->sock = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
+    }
+
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */        
+    public function ping() { //maybe should be called... check connection?
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */        
+        $_s = fsockopen( $this->ip, $this->port );
+        if( !$_s ) {
+
+            return false; 
+        }
+
+        fclose($_s);
+        return true;
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */   
@@ -58,26 +70,37 @@ class soldat_server extends ppsserver {
         $this->m_timeout = $timeout;
         
         if( @fsockopen($this->ip, $this->port, $errno, $errstr ) === false ) {
-            return $errstr . "\n";;
+            error_log( "Gather Server connect: $errstr" );
+            return false;
         }        
+
+        $this->sock = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
 
         socket_connect( $this->sock, $this->ip, $this->port);
 
         $logstr = $this->m_adminlog . "\r\n";
         socket_write( $this->sock, $logstr );
-        $this->State = CONNECTED;
         $this->connected = true;
     
         //??
         if( $this->stats ) {
             $refresh = $this->get_refreshx();
         }
+
+        return true;
     }
     
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */        
+    public function disconnect() {
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */        
+        socket_close( $this->sock );
+        $this->connected = false;
+        unset( $this->sock );
+    }
+
     public function reconnect($timeout = 5) {
         //socket_shutdown( $this->sock ); //Shutting down non-connected socket gives a warning [107]. Weird
-        socket_close( $this->sock );
-        unset( $this->sock );
+        $this->disconnect();
 
         sleep( $timeout );
         $this->connected = false;
@@ -85,6 +108,18 @@ class soldat_server extends ppsserver {
         $this->connect( $timeout );
     }
     
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */        
+    public function kill() 
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */        
+    {
+        $this->disconnect();
+        if( $this->gather ) $this->gather->game_server_dc( "$this->ip:$this->port" );
+    }
+
+    /* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+    public function get_key() { return "$this->ip:$this->port"; }
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     public function get_info() 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -135,7 +170,6 @@ class soldat_server extends ppsserver {
         if( !$this->sock ) return;
         $this->buffer = trim( socket_read($this->sock, 1024, PHP_BINARY_READ) );
         if( !$this->buffer ) {
-            echo "Zero length buffer read. Reconnect\n";
             $this->reconnect();
             return false;
         }
@@ -199,9 +233,7 @@ class soldat_server extends ppsserver {
     public function PJOIN( $line ) {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
         if( $this->stats ) {
-            if( !$this->pps->m_SQL_ON  ) {
-                $this->pps->connect_mysql();
-            }
+
             $this->stats->ch_join( $line );
         }
 

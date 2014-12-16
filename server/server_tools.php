@@ -28,6 +28,7 @@ Trait server_tools{
     public $sockets = [];
 
     public $connected_servers = [];
+    public $available_game_server = [];
 
     public $parser = [];
 
@@ -65,7 +66,10 @@ Trait server_tools{
             return null;
         }
         list( $a, $p, $k, $r, $t ) = $_valid;
-        return new  gather_server($this, $a, $p, $k, $r, $t);
+        if( $this->gather_mode ) 
+            return new  gather_server($this, $a, $p, $k, $r, $t);
+        else
+            return new soldat_server($this, $a, $p, $k);
     }
     
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
@@ -166,12 +170,25 @@ Trait server_tools{
     }
 
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+    function connect_all_game_servers( ) {
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
+        echo "Connect all servers\n";
+        foreach( $this->servers as $server ) {
+
+            if( $server->type == SERVER_TYPE_SOLDAT ) {
+
+                $this->game_server_connect( $server->get_key() );
+            }
+        }
+    }
+
+	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
     function game_server_connect($key) {
 	/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */    
         $server = $this->servers[$key];
         $sucess = $server->connect();
         if( $sucess == true ) {
-
+            echo "Server: $key connected\n";
             $this->connected_servers[$key] = true;
         }
         return $sucess;

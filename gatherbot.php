@@ -32,6 +32,7 @@ require( ABS_PATH . "/server/server.php" );
 require( ABS_PATH . "/server/irc_server.php" );
 require( ABS_PATH . "/server/gather_server.php" );
 require( ABS_PATH . "/server/mysql_server.php" );
+require( ABS_PATH . "/server/soldat_server.php" );
 require( ABS_PATH . "/server/server_tools.php" );
 require( ABS_PATH . "/utility/actions.php" );
 
@@ -47,12 +48,10 @@ class pps_gather {
     Use server_tools;
     Use actions;
 
-    public $available_game_server = [];
-
     public function __construct($server_list) 
     {
-        $this->init_servers( $server_list );    
         $this->gather_mode = true;
+        $this->init_servers( $server_list );    
 
         foreach( $this->servers as $key => $server ) {
             if( $server->type === SERVER_TYPE_SOLDAT ) {

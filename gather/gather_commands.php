@@ -174,7 +174,9 @@ Trait gather_commands{
 
             $this->speak( "No gather pending..." );
         }
+    }
 
+    function overkill( $user, $args = null ) {
         $server_status = $this->pps->get_status();
         foreach( $server_status as $status ) {
 
@@ -182,7 +184,7 @@ Trait gather_commands{
             $this->speak( substr($status, 1), $this->chan, substr($status,0,1) );
         }
     }
-    
+
     function players ( $user, $args = null ) {
 
         $i = 0;
